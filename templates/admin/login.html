@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Admin — IMPACT S2S{% endblock %}
+
+{% block head %}
+<style>
+    .admin-login--gate {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface);
+    }
+    .admin-login--gate .admin-login__card {
+        background: var(--color-white);
+        border-radius: var(--radius-lg);
+        padding: 2.5rem;
+        max-width: 420px;
+        width: 90%;
+        box-shadow: var(--shadow-md);
+        text-align: center;
+    }
+    .admin-login--gate h2 {
+        font-family: var(--font-display);
+        margin-bottom: 0.5rem;
+    }
+    .admin-login--gate .gate-desc {
+        color: var(--color-muted);
+        font-size: 0.9rem;
+        margin-bottom: 1.75rem;
+        line-height: 1.5;
+    }
+    .admin-login--gate .admin-login__input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .admin-login--gate .admin-login__input:focus {
+        outline: none;
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 3px rgba(201,162,39,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="admin-login--gate">
+    <div class="admin-login__card">
+        <h2>Admin Portal</h2>
+        <p class="gate-desc">Enter the access code to continue to the dashboard.</p>
+        <input type="password" class="admin-login__input" id="adminCode" placeholder="Access code" autofocus
+               onkeydown="if(event.key==='Enter') adminLogin()">
+        <div>
+            <button class="start-btn" onclick="adminLogin()" style="width: 100%;">Enter</button>
+        </div>
+        <p id="loginError" style="color: var(--color-danger); margin-top: 1rem; font-size: 0.85rem; display: none;">Invalid access code</p>
+        <div style="margin-top: 2rem;">
+            <a href="/" style="color: var(--color-muted); font-size: 0.85rem; text-decoration: none;">← Back to Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function adminLogin() {
+        const code = document.getElementById('adminCode').value;
+        const res = await api('/api/admin/login', { code });
+        if (res.success) {
+            window.location.href = res.redirect || '/admin/dashboard';
+        } else {
+            document.getElementById('loginError').style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}

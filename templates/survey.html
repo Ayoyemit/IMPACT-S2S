@@ -1,0 +1,546 @@
+{% extends "base.html" %}
+{% block title %}Vote — IMPACT S2S{% endblock %}
+
+{% block body %}
+<!-- ═══ NAVBAR ═══ -->
+<nav class="navbar">
+    <div class="navbar__left">
+        <button type="button" class="navbar__back" aria-label="Go back" onclick="window.location.href='/'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="navbar__title">Smoking Cessation: Vote for Best Strategies</span>
+    </div>
+    <div class="navbar__right">
+        <a href="{{ url_for('index') }}" class="nav-btn nav-btn--ghost navbar__home">Home</a>
+        <button class="nav-btn nav-btn--vote" id="voteNavBtn">Vote</button>
+        <button class="nav-btn nav-btn--ghost" onclick="openQuickGuide()">Help</button>
+    </div>
+</nav>
+
+<!-- ═══ SURVEY LAYOUT ═══ -->
+<div class="survey-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar__title">Implementation Levels</div>
+
+        {% for level in level_order %}
+        <button class="level-btn level-btn--{{ level|lower|replace('/', '') }} {% if loop.first %}active{% endif %}"
+                data-level="{{ level }}"
+                onclick="switchLevel('{{ level }}', this)">
+            {{ level }} Level
+            <span class="check-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+            </span>
+        </button>
+        {% endfor %}
+
+        <!-- Progress bar -->
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressFill" style="width: 0%;">
+                    <span class="progress-star" id="progressStar" style="display:none;">⭐</span>
+                </div>
+            </div>
+            <div class="progress-label" id="progressLabel">0 of 5 selections</div>
+            <div class="progress-extra" id="progressExtra" style="display:none; text-align:center; font-size: 0.78rem; color: var(--color-muted); margin-top: 0.25rem;"></div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="level-label" id="levelLabel">{{ level_order[0] }} Level</div>
+
+        <h2 class="question-text">
+            Which do you think is more important for increasing delivery of smoking cessation treatment in community mental health settings?
+        </h2>
+        <p class="question-subtext">Click on one strategy below to make your choice</p>
+
+        <!-- Strategy pair -->
+        <div class="pair-container" id="pairContainer">
+            <div class="strategy-card card-enter" id="cardA" onclick="vote('A')">
+                <span class="strategy-card__text" id="textA">Loading...</span>
+                <span class="strategy-card__info" id="infoA" style="display:none;" onclick="event.stopPropagation(); toggleTooltip('A')">i</span>
+                <div class="tooltip" id="tooltipA"></div>
+            </div>
+            <div class="strategy-card card-enter" id="cardB" onclick="vote('B')">
+                <span class="strategy-card__text" id="textB">Loading...</span>
+                <span class="strategy-card__info" id="infoB" style="display:none;" onclick="event.stopPropagation(); toggleTooltip('B')">i</span>
+                <div class="tooltip" id="tooltipB"></div>
+            </div>
+        </div>
+
+        <!-- Can't decide -->
+        <div class="cant-decide-section">
+            <button class="cant-decide-btn" onclick="toggleCantDecide()">I Can't Decide</button>
+            <div class="cant-decide-options" id="cantDecideOptions">
+                <button class="cant-decide-reason" onclick="cantDecide('too_similar')">Both seem similar</button>
+                <button class="cant-decide-reason" onclick="cantDecide('unclear')">Both are unclear</button>
+            </div>
+        </div>
+
+        <!-- Idea submission -->
+        <div class="idea-section">
+            <div class="idea-section__title">Have Your Own Idea?</div>
+            <div class="idea-section__desc">Share a strategy for increasing delivery of smoking cessation treatment</div>
+            <textarea class="idea-textarea" id="ideaText" placeholder="Add your own idea here..."
+                      maxlength="1000"></textarea>
+            <div>
+                <button class="idea-submit-btn" id="ideaSubmitBtn" onclick="submitIdea()">Submit My Idea</button>
+            </div>
+            <div class="idea-warning">
+                Please do not include any personal identifying information. Your idea will be shared with other participants.
+                The study team may edit your idea for consistency.
+            </div>
+            <div class="idea-success" id="ideaSuccess">✓ Your idea has been submitted for review. Thank you!</div>
+        </div>
+    </main>
+</div>
+
+
+<!-- ═══ CELEBRATION MODAL ═══ -->
+<div class="modal-backdrop" id="celebrationModal">
+    <div class="modal">
+        <div class="modal__emoji">🎉</div>
+        <h3 class="modal__title">You've hit the goal!</h3>
+        <p class="modal__text" id="celebrationText">
+            Great work on the <strong id="celebrationLevel">Provider</strong> level.
+            Every additional comparison makes the results stronger.
+            Keep going here or try another level — whatever feels good.
+        </p>
+        <div>
+            <button class="modal__btn" onclick="closeCelebration()">Continue</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══ QUICK GUIDE ═══ -->
+<div class="quickguide-backdrop" id="quickGuide">
+    <div class="quickguide">
+        <div class="quickguide__header">
+            <h2>Quick Guide</h2>
+            <button class="quickguide__close" onclick="closeQuickGuide()">✕</button>
+        </div>
+        <div class="quickguide__body">
+
+            <!-- Video placeholder -->
+            <div class="quickguide__video">
+                <div class="quickguide__video-play">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--color-primary-dark)"><polygon points="8,5 19,12 8,19"/></svg>
+                </div>
+                <div style="position: absolute; bottom: 1rem; left: 0; right: 0;">
+                    <div class="quickguide__video-title">How to use the project app — A walkthrough</div>
+                </div>
+            </div>
+
+            <p class="quickguide__intro">
+                We want to identify the best ways to implement <strong>smoking cessation treatment</strong>
+                in community mental health settings. Understand the <strong>what, where, who, and how</strong>
+                of smoking cessation treatment by expanding the cards below.
+            </p>
+
+            <!-- WHAT accordion -->
+            <div class="accordion-item">
+                <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                    WHAT
+                    <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div class="accordion-body">
+                    <div class="accordion-body__inner">
+                        <p style="margin-bottom: 0.75rem;"><strong>Smoking cessation treatment</strong> is an evidence-based practice that involves four activities. Hover over each to learn more.</p>
+                        <div class="hover-item">
+                            <div class="hover-item__title">📋 Assessing smoking status</div>
+                            <div class="hover-item__desc">This involves asking patients if they currently smoke tobacco and assessing the severity of tobacco dependence.</div>
+                        </div>
+                        <div class="hover-item">
+                            <div class="hover-item__title">💬 Assessing willingness to quit</div>
+                            <div class="hover-item__desc">This involves asking patients whether they are thinking about trying to quit smoking and if they have a time goal.</div>
+                        </div>
+                        <div class="hover-item">
+                            <div class="hover-item__title">🧠 Behavioral counseling</div>
+                            <div class="hover-item__desc">This involves counseling focused on smoking cessation, delivered by providers trained in motivational interviewing techniques.</div>
+                        </div>
+                        <div class="hover-item">
+                            <div class="hover-item__title">💊 Pharmacotherapy</div>
+                            <div class="hover-item__desc">This involves the prescription and management of smoking cessation medications and/or nicotine replacement therapy, managed by a prescribing physician or nurse.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WHERE accordion -->
+            <div class="accordion-item">
+                <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                    WHERE
+                    <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div class="accordion-body">
+                    <div class="accordion-body__inner">
+                        <strong>Community mental health centers</strong> provide a variety of services. These centers are generally where people with SMI receive most of their healthcare.
+                    </div>
+                </div>
+            </div>
+
+            <!-- WHO accordion -->
+            <div class="accordion-item">
+                <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                    WHO
+                    <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div class="accordion-body">
+                    <div class="accordion-body__inner">
+                        <strong>Therapists, psychiatrists, and nurses</strong> at community mental health centers would become involved in the delivery of smoking cessation treatment, involving behavioral counseling and medication management.
+                    </div>
+                </div>
+            </div>
+
+            <!-- HOW accordion -->
+            <div class="accordion-item">
+                <button class="accordion-trigger" onclick="toggleAccordion(this)">
+                    HOW
+                    <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div class="accordion-body">
+                    <div class="accordion-body__inner">
+                        <p>You are picking between <em>implementation strategies</em>, which are actions or processes that support the delivery of a clinical practice.</p>
+
+                        <p class="levels-intro">We're going to ask about strategies at different levels: <strong>System, Organization, Provider, and Patient.</strong> Hover over or click each layer of the diagram to learn more.</p>
+
+                        <!-- Onion Diagram -->
+                        <div class="onion-container">
+                            <svg class="onion-svg" width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                                <!-- System (outer) -->
+                                <ellipse cx="120" cy="130" rx="115" ry="100" fill="rgba(167,243,208,0.35)" stroke="#a7f3d0" stroke-width="2"
+                                         style="cursor:pointer" onclick="showOnionDesc('system')" onmouseenter="showOnionDesc('system')"/>
+                                <text x="120" y="50" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="13" fill="#374151">System</text>
+
+                                <!-- Organization -->
+                                <ellipse cx="120" cy="140" rx="88" ry="76" fill="rgba(253,230,138,0.4)" stroke="#fde68a" stroke-width="2"
+                                         style="cursor:pointer" onclick="showOnionDesc('organization')" onmouseenter="showOnionDesc('organization')"/>
+                                <text x="120" y="82" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="13" fill="#374151">Organization</text>
+
+                                <!-- Provider -->
+                                <ellipse cx="120" cy="150" rx="62" ry="54" fill="rgba(244,114,182,0.3)" stroke="#f472b6" stroke-width="2"
+                                         style="cursor:pointer" onclick="showOnionDesc('provider')" onmouseenter="showOnionDesc('provider')"/>
+                                <text x="120" y="120" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="13" fill="#374151">Provider</text>
+
+                                <!-- Patient (inner) -->
+                                <ellipse cx="120" cy="160" rx="38" ry="32" fill="rgba(59,130,246,0.25)" stroke="#3b82f6" stroke-width="2"
+                                         style="cursor:pointer" onclick="showOnionDesc('patient')" onmouseenter="showOnionDesc('patient')"/>
+                                <text x="120" y="163" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="12" fill="#374151">Patient</text>
+                            </svg>
+
+                            <div class="onion-desc" id="onionDesc">
+                                Click or hover over a layer to learn more about each implementation level.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ── State ──
+    const SESSION_ID = '{{ session_id }}';
+    const ROLE = '{{ role }}';
+    let currentLevel = '{{ level_order[0] }}';
+    let currentPair = { a: null, b: null };
+    let currentAlgoLogId = null;
+    let levelCounts = {};
+    let celebratedLevels = new Set();
+    let showingQuickGuide = true;
+
+    // Level color map for progress bar
+    const LEVEL_FILL_CLASS = {
+        'Provider': 'progress-bar-fill--provider',
+        'Organization': 'progress-bar-fill--organization',
+        'System': 'progress-bar-fill--system',
+        'Client': 'progress-bar-fill--client',
+    };
+
+    // ── Init ──
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Load initial counts
+        const res = await api('/api/level-counts');
+        levelCounts = res || {};
+        updateProgress();
+        loadPair();
+        openQuickGuide();
+
+        // Heartbeat every 30s
+        setInterval(() => api('/api/session-heartbeat', {}), 30000);
+
+        // End session on close
+        window.addEventListener('beforeunload', () => {
+            navigator.sendBeacon('/api/end-session', JSON.stringify({}));
+        });
+    });
+
+    // ── Load pair ──
+    async function loadPair() {
+        const container = document.getElementById('pairContainer');
+        container.style.opacity = '0.4';
+
+        const res = await api('/api/get-pair', { level: currentLevel });
+
+        if (res.error) {
+            document.getElementById('textA').textContent = 'No strategies available';
+            document.getElementById('textB').textContent = 'Try another level';
+            container.style.opacity = '1';
+            return;
+        }
+
+        currentPair.a = res.strategy_a;
+        currentPair.b = res.strategy_b;
+        currentAlgoLogId = res.algo_log_id || null;
+
+        // Set text
+        document.getElementById('textA').textContent = res.strategy_a.choice;
+        document.getElementById('textB').textContent = res.strategy_b.choice;
+
+        // Help text info icons
+        setupInfoIcon('A', res.strategy_a.help_text);
+        setupInfoIcon('B', res.strategy_b.help_text);
+
+        // Reset card styles
+        document.getElementById('cardA').classList.remove('selected');
+        document.getElementById('cardB').classList.remove('selected');
+
+        // Animate in
+        container.style.opacity = '1';
+        document.getElementById('cardA').classList.add('card-enter');
+        document.getElementById('cardB').classList.add('card-enter');
+        setTimeout(() => {
+            document.getElementById('cardA').classList.remove('card-enter');
+            document.getElementById('cardB').classList.remove('card-enter');
+        }, 400);
+
+        // Close cant decide options
+        document.getElementById('cantDecideOptions').classList.remove('show');
+    }
+
+    function setupInfoIcon(side, helpText) {
+        const icon = document.getElementById('info' + side);
+        const tooltip = document.getElementById('tooltip' + side);
+        if (helpText && helpText.trim()) {
+            icon.style.display = 'flex';
+            tooltip.textContent = helpText;
+        } else {
+            icon.style.display = 'none';
+            tooltip.textContent = '';
+        }
+        tooltip.classList.remove('visible');
+    }
+
+    function toggleTooltip(side) {
+        const tooltip = document.getElementById('tooltip' + side);
+        const other = document.getElementById('tooltip' + (side === 'A' ? 'B' : 'A'));
+        other.classList.remove('visible');
+        tooltip.classList.toggle('visible');
+    }
+
+    // Close tooltips when clicking elsewhere
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.strategy-card__info') && !e.target.closest('.tooltip')) {
+            document.querySelectorAll('.tooltip').forEach(t => t.classList.remove('visible'));
+        }
+    });
+
+    // ── Vote ──
+    async function vote(choice) {
+        const winner = choice === 'A' ? currentPair.a : currentPair.b;
+        const loser = choice === 'A' ? currentPair.b : currentPair.a;
+
+        if (!winner || !loser) return;
+
+        // Visual feedback
+        const card = document.getElementById('card' + choice);
+        card.classList.add('selected');
+
+        const res = await api('/api/vote', {
+            winner_id: winner.id,
+            loser_id: loser.id,
+            level: currentLevel,
+            algo_log_id: currentAlgoLogId,
+        });
+
+        if (res.success) {
+            levelCounts = res.level_counts;
+            updateProgress();
+
+            // Check celebration
+            const count = levelCounts[currentLevel] || 0;
+            if (count === 5 && !celebratedLevels.has(currentLevel)) {
+                celebratedLevels.add(currentLevel);
+                showCelebration();
+            }
+
+            // Load next pair after brief delay
+            setTimeout(() => loadPair(), 350);
+        }
+    }
+
+    // ── Can't Decide ──
+    function toggleCantDecide() {
+        document.getElementById('cantDecideOptions').classList.toggle('show');
+    }
+
+    async function cantDecide(reason) {
+        if (!currentPair.a || !currentPair.b) return;
+
+        await api('/api/cant-decide', {
+            strategy_a_id: currentPair.a.id,
+            strategy_b_id: currentPair.b.id,
+            reason: reason,
+            level: currentLevel,
+            algo_log_id: currentAlgoLogId,
+        });
+
+        showToast(reason === 'too_similar' ? 'Got it — loading a new pair' : 'Noted — loading a new pair');
+        loadPair();
+    }
+
+    // ── Submit idea ──
+    async function submitIdea() {
+        const text = document.getElementById('ideaText').value.trim();
+        if (!text) {
+            showToast('Please enter your idea first', 'error');
+            return;
+        }
+
+        document.getElementById('ideaSubmitBtn').disabled = true;
+        const res = await api('/api/submit-idea', { idea_text: text });
+
+        if (res.success) {
+            document.getElementById('ideaText').value = '';
+            document.getElementById('ideaSuccess').style.display = 'block';
+            showToast('Your idea has been submitted!', 'success');
+            setTimeout(() => {
+                document.getElementById('ideaSuccess').style.display = 'none';
+            }, 5000);
+        } else {
+            showToast(res.error || 'Failed to submit', 'error');
+        }
+        document.getElementById('ideaSubmitBtn').disabled = false;
+    }
+
+    // ── Level switching ──
+    function switchLevel(level, btn) {
+        currentLevel = level;
+
+        // Update active button
+        document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Update label
+        document.getElementById('levelLabel').textContent = level + ' Level';
+
+        // Update progress bar
+        updateProgress();
+
+        // Load new pair
+        loadPair();
+    }
+
+    // ── Progress ──
+    function updateProgress() {
+        const count = levelCounts[currentLevel] || 0;
+        const pct = Math.min(count / 5, 1) * 100;
+        const fill = document.getElementById('progressFill');
+        const star = document.getElementById('progressStar');
+        const label = document.getElementById('progressLabel');
+        const extra = document.getElementById('progressExtra');
+
+        // Remove all level classes
+        fill.className = 'progress-bar-fill';
+        // Add current level class
+        const cls = LEVEL_FILL_CLASS[currentLevel] || 'progress-bar-fill--provider';
+        fill.classList.add(cls);
+
+        fill.style.width = pct + '%';
+
+        if (count >= 5) {
+            star.style.display = 'inline';
+            star.classList.add('pop');
+            setTimeout(() => star.classList.remove('pop'), 500);
+            label.textContent = '✓ Level goal reached!';
+            // Phase 2: show ongoing vote counter
+            extra.style.display = 'block';
+            extra.textContent = count + ' total votes on this level';
+        } else {
+            star.style.display = 'none';
+            label.textContent = count + ' of 5 selections';
+            extra.style.display = 'none';
+        }
+
+        // Update level completion indicators
+        document.querySelectorAll('.level-btn').forEach(btn => {
+            const lvl = btn.dataset.level;
+            if ((levelCounts[lvl] || 0) >= 5) {
+                btn.classList.add('completed');
+            }
+        });
+    }
+
+    // ── Celebration ──
+    function showCelebration() {
+        document.getElementById('celebrationLevel').textContent = currentLevel;
+        document.getElementById('celebrationModal').classList.add('show');
+    }
+
+    function closeCelebration() {
+        document.getElementById('celebrationModal').classList.remove('show');
+    }
+
+    // ── Quick Guide ──
+    function openQuickGuide() {
+        document.getElementById('quickGuide').classList.add('show');
+    }
+
+    function closeQuickGuide() {
+        document.getElementById('quickGuide').classList.remove('show');
+    }
+
+    // Close on backdrop click
+    document.getElementById('quickGuide').addEventListener('click', function(e) {
+        if (e.target === this) closeQuickGuide();
+    });
+    document.getElementById('celebrationModal').addEventListener('click', function(e) {
+        if (e.target === this) closeCelebration();
+    });
+
+    // ── Accordion ──
+    function toggleAccordion(trigger) {
+        const body = trigger.nextElementSibling;
+        const isOpen = body.classList.contains('open');
+
+        // Close all
+        document.querySelectorAll('.accordion-body').forEach(b => b.classList.remove('open'));
+        document.querySelectorAll('.accordion-trigger').forEach(t => t.classList.remove('open'));
+
+        if (!isOpen) {
+            body.classList.add('open');
+            trigger.classList.add('open');
+        }
+    }
+
+    // ── Onion Diagram ──
+    const ONION_DESCS = {
+        system: 'This refers to strategies that would happen <strong>outside</strong> the walls of an individual healthcare organization or would have effects outside of one organization.',
+        organization: 'This refers to strategies that would happen <strong>inside</strong> the walls of an individual healthcare organization.',
+        provider: 'This refers to strategies that would involve or impact <strong>healthcare providers</strong>.',
+        patient: 'This refers to strategies that would involve or impact <strong>healthcare patients</strong>.',
+    };
+
+    function showOnionDesc(level) {
+        document.getElementById('onionDesc').innerHTML = ONION_DESCS[level] || '';
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}IMPACT S2S — Smoking Cessation Strategies{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    {% block body %}{% endblock %}
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // ── Toast helper ──
+        function showToast(msg, type='success', duration=3000) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast toast--' + type + ' show';
+            setTimeout(() => t.classList.remove('show'), duration);
+        }
+
+        // ── Fetch helper ──
+        async function api(url, data=null) {
+            const opts = data
+                ? { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }
+                : { method: 'GET' };
+            const res = await fetch(url, opts);
+            return res.json();
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

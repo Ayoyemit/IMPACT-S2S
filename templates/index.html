@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<!-- ═══ HERO / LANDING ═══ -->
+<section class="hero" id="hero">
+    <div class="hero__bg"></div>
+    <div class="hero__overlay"></div>
+
+    <div class="hero__content fade-in-up">
+        <h1 class="hero__title">Smoking Cessation: Vote for Best Strategies</h1>
+        <p class="hero__subtitle">IMPACT S2S: Strategies 2 Scale</p>
+
+        <p class="hero__prompt">To start the survey, please select what role best describes you</p>
+
+        <div class="role-grid" id="roleGrid">
+            <button class="role-btn" data-role="Provider" onclick="selectRole(this)">Provider</button>
+            <button class="role-btn" data-role="Implementation Scientist" onclick="selectRole(this)">Implementation Scientist</button>
+            <button class="role-btn" data-role="Patient/Family" onclick="selectRole(this)">Patient / Family</button>
+            <button class="role-btn" data-role="Policy/Advocacy" onclick="selectRole(this)">Policy / Advocacy</button>
+        </div>
+
+        <div class="consent-box">
+            <label>
+                <input type="checkbox" id="consentCheck" onchange="updateStartBtn()">
+                <span>
+                    I agree to participate in this research study.
+                    <span class="consent-link" onclick="event.preventDefault(); openConsentModal()">Read Full Consent Form</span>
+                </span>
+            </label>
+        </div>
+
+        <button class="start-btn" id="startBtn" disabled onclick="startSurvey()">
+            START SURVEY
+        </button>
+    </div>
+
+    <div class="scroll-indicator">
+        <span>Scroll to learn more</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M7 13l5 5 5-5M7 6l5 5 5-5"/>
+        </svg>
+    </div>
+</section>
+
+
+<!-- ═══ ABOUT SECTION ═══ -->
+<section class="about-section" id="about">
+    <h2 class="about-section__title">About IMPACT S2S</h2>
+
+    <div class="about-card">
+        <strong>IMPACT S2S (IMPlementing Action for tobacco smoking Cessation Treatment: Strategies 2 Scale)</strong>
+        is a research study. This study is being done to improve the delivery of smoking cessation treatment
+        to people living with serious mental illness (SMI).
+        <br><br>
+        In this brief survey, you will compare strategies in pairs and can also suggest new ideas.
+        <strong>Your voice matters.</strong> Insights from this survey will inform how smoking cessation
+        treatment is delivered to people living with SMI in the future.
+    </div>
+
+    <h3 style="font-family: var(--font-display); font-size: 1.25rem; margin-bottom: 1rem;">How It Works</h3>
+
+    <div class="how-it-works">
+        <div class="how-step">
+            <div class="how-step__number">1</div>
+            <div>
+                <div class="how-step__title">Compare strategies</div>
+                <div class="how-step__desc">You will be shown two strategies at a time and asked which one you think is better.</div>
+            </div>
+        </div>
+        <div class="how-step">
+            <div class="how-step__number">2</div>
+            <div>
+                <div class="how-step__title">Suggest new strategies</div>
+                <div class="how-step__desc">You can add your own ideas so that others can compare and vote on them.</div>
+            </div>
+        </div>
+    </div>
+
+    <h3 style="font-family: var(--font-display); font-size: 1.25rem; margin: 2rem 0 1rem;">Who It's For</h3>
+
+    <div class="who-for">
+        <div class="who-for__item"><strong>Patient:</strong> People living with mental illness and their families.</div>
+        <div class="who-for__item"><strong>Provider:</strong> Healthcare providers and administrators.</div>
+        <div class="who-for__item"><strong>Implementation Scientists:</strong> Implementation researchers and practitioners.</div>
+        <div class="who-for__item"><strong>Policy/Advocacy:</strong> Policymakers and advocacy professionals.</div>
+    </div>
+
+    <div class="about-cta">
+        <h3>Ready to contribute?</h3>
+        <button class="start-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">START SURVEY</button>
+    </div>
+</section>
+
+
+<!-- ═══ CONSENT MODAL ═══ -->
+<div class="modal-backdrop" id="consentModal">
+    <div class="modal" style="max-width: 600px; text-align: left;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h2 style="font-family: var(--font-display); font-size: 1.25rem;">Consent Information</h2>
+            <button class="quickguide__close" onclick="closeConsentModal()" style="flex-shrink:0;">✕</button>
+        </div>
+        <div class="consent-modal-body">
+            <h3>KEY INFORMATION</h3>
+            <p>This research study is being done to improve the delivery of smoking cessation treatment to people living with serious mental illness (SMI).</p>
+            <p>Your participation will require completing a brief survey, comparing strategies to increase the delivery of smoking cessation.</p>
+
+            <h3>PURPOSE</h3>
+            <p>In this study, we will work with community partners to identify the best ways to implement smoking cessation programs in community mental health settings.</p>
+
+            <h3>RISKS AND BENEFITS</h3>
+            <p>The risks associated with this study are minimal. You may become bored or tired during the survey. You do not have to answer any questions you do not want to answer. You may not receive direct benefits from participating, but your responses will contribute to improving smoking cessation services for people with SMI.</p>
+
+            <h3>VOLUNTARY PARTICIPATION</h3>
+            <p>You do not have to agree to be in this study. Your consent is implied by participation. If you wish to stop, simply close the survey web page. Leaving this study will not stop you from getting regular medical care, or affect your employment/education.</p>
+
+            <h3>IDENTIFIABLE INFORMATION</h3>
+            <p>No personal identifiable information will be collected or stored. We will collect your role type (e.g. mental healthcare patient, healthcare provider/administrator) and your strategy preferences. Please refrain from sharing identifiable information in the free-text box. If you unintentionally input identifiable information, the study team will redact it from your response.</p>
+
+            <h3>CONTACT INFORMATION</h3>
+            <p>If you have any questions about this study, please feel free to contact the Principal Investigator Dr. Christina Yuan at 410-955-0510 or <a href="mailto:cyuan16@jhu.edu" style="color: var(--color-accent);">cyuan16@jhu.edu</a></p>
+            <p>The IRB can help you if you have questions about your rights as a research participant or if you have other questions, concerns or complaints about this research study. You may contact the IRB at 410-502-2092 or <a href="mailto:jhmeirb@jhmi.edu" style="color: var(--color-accent);">jhmeirb@jhmi.edu</a></p>
+        </div>
+        <div style="text-align: center; margin-top: 1.5rem;">
+            <button class="modal__btn" onclick="closeConsentModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let selectedRole = null;
+
+    function selectRole(btn) {
+        document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedRole = btn.dataset.role;
+        updateStartBtn();
+    }
+
+    function updateStartBtn() {
+        const consented = document.getElementById('consentCheck').checked;
+        document.getElementById('startBtn').disabled = !(selectedRole && consented);
+    }
+
+    async function startSurvey() {
+        if (!selectedRole) return;
+        const res = await api('/api/start-session', { role: selectedRole });
+        if (res.session_id) {
+            window.location.href = '/survey';
+        } else {
+            showToast(res.error || 'Something went wrong', 'error');
+        }
+    }
+
+    function openConsentModal() {
+        document.getElementById('consentModal').classList.add('show');
+    }
+
+    function closeConsentModal() {
+        document.getElementById('consentModal').classList.remove('show');
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('consentModal').addEventListener('click', function(e) {
+        if (e.target === this) closeConsentModal();
+    });
+</script>
+{% endblock %}
