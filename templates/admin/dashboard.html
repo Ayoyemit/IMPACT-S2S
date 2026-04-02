@@ -1,593 +1,1838 @@
-{% extends "base.html" %}
-{% block title %}Admin Dashboard — IMPACT S2S{% endblock %}
-
-{% block head %}
+{% extends "base.html" %} {% block title %}Admin Dashboard — IMPACT S2S{%
+endblock %} {% block head %}
 <style>
-    .admin-container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+  .admin-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
 
-    .admin-tabs { display: flex; gap: 0.25rem; border-bottom: 2px solid var(--color-border); margin-bottom: 2rem; }
+  .admin-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 2px solid var(--color-border);
+    margin-bottom: 2rem;
+  }
+  .admin-tab {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: none;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: var(--transition);
+    margin-bottom: -2px;
+  }
+  .admin-tab:hover {
+    color: var(--color-text);
+  }
+  .admin-tab.active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .admin-panel {
+    display: none;
+    overflow: visible;
+  }
+  .admin-panel.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+  /* Opacity animation can confuse iOS native <select> popover positioning */
+  @media (max-width: 768px) {
+    .admin-panel.active {
+      animation: none;
+    }
+  }
+
+  /* Stat cards */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--color-primary-dark);
+    color: var(--color-white);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card__icon {
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+  }
+  .stat-card__value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .stat-card__label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.65);
+    margin-top: 0.15rem;
+  }
+
+  /* Rankings */
+  .rank-filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    align-items: center;
+  }
+  /* Full-width row directly under filter buttons (fixes mobile alignment) */
+  .rank-filters__sub {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    margin-top: 0.25rem;
+    position: relative;
+  }
+  .rank-filters__sub .rank-select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: block;
+  }
+  /* Mobile: custom trigger + bottom sheet (iOS draws native <select> menus at wrong coords) */
+  .rank-select-fake {
+    display: none;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-white);
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+    text-align: left;
+  }
+  .rank-select-fake::after {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 2px solid var(--color-muted);
+    border-bottom: 2px solid var(--color-muted);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+    margin-top: -0.2rem;
+  }
+  .rank-select-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 800;
+    background: rgba(0, 0, 0, 0.45);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rank-select-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 801;
+    overflow: hidden;
+    background: var(--color-white);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+    padding: 0;
+    max-height: min(85vh, 640px);
+    max-height: min(85dvh, 640px);
+  }
+  /*
+      Fixed height (not max-height alone): WebKit often shrinks max-height boxes to content,
+      so only 1–2 rows show. Tall scroll region + overflow-y auto reveals all options.
+    */
+  .rank-select-sheet__scroll {
+    box-sizing: border-box;
+    height: min(72vh, 560px);
+    height: min(72dvh, 560px);
+    max-height: min(85vh, 640px);
+    max-height: min(85dvh, 640px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    padding: 0.5rem 0 calc(1rem + env(safe-area-inset-bottom, 0px));
+    position: relative;
+  }
+  .rank-select-sheet__opt {
+    display: block;
+    width: 100%;
+    padding: 0.85rem 1.25rem;
+    border: none;
+    background: none;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    text-align: left;
+    color: var(--color-text);
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .rank-select-sheet__opt:last-child {
+    border-bottom: none;
+  }
+  .rank-select-sheet__opt:active,
+  .rank-select-sheet__opt:hover {
+    background: var(--color-surface);
+  }
+  .rank-select-sheet__opt--active {
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    background: rgba(201, 162, 39, 0.12);
+  }
+  @media (max-width: 768px) {
+    .rank-filters__sub .rank-select--native {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .rank-select-fake:not([hidden]) {
+      display: flex;
+    }
+  }
+  .rank-filter-label {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+  .rank-filter-btn {
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: var(--font-body);
+  }
+  .rank-filter-btn:hover {
+    border-color: var(--color-accent);
+  }
+  .rank-filter-btn.active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-primary-dark);
+    font-weight: 600;
+  }
+
+  .rank-select {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-family: var(--font-body);
+    background: var(--color-white);
+  }
+
+  .ranking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .rank-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    transition: var(--transition);
+  }
+  .rank-item:hover {
+    border-color: var(--color-accent);
+  }
+  .rank-number {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    min-width: 36px;
+  }
+  .rank-choice {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  .rank-meta {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+
+  .rank-item--top {
+    border-left: 4px solid var(--color-accent);
+  }
+
+  /* Download btn */
+  .download-btn {
+    padding: 0.45rem 1rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .download-btn:hover {
+    border-color: var(--color-muted);
+  }
+
+  /* Review cards */
+  .review-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    background: var(--color-white);
+  }
+  .review-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+  .review-card__date {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+  .review-card__role {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    background: var(--color-surface);
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .review-card__text {
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+  }
+  .review-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    padding: 0.35rem 0.85rem;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-family: var(--font-body);
+    transition: var(--transition);
+    letter-spacing: 0.03em;
+  }
+  .action-btn--edit {
+    background: var(--color-accent);
+    color: var(--color-primary-dark);
+  }
+  .action-btn--approve {
+    background: var(--color-success);
+    color: white;
+  }
+  .action-btn--reject {
+    background: var(--color-danger);
+    color: white;
+  }
+  .action-btn--duplicate {
+    background: var(--color-muted);
+    color: white;
+  }
+  .action-btn:hover {
+    opacity: 0.85;
+  }
+
+  .review-select {
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    font-size: 0.82rem;
+    font-family: var(--font-body);
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .status-badge--pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .status-badge--approved {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .status-badge--rejected {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .status-badge--duplicate {
+    background: #e5e7eb;
+    color: #374151;
+  }
+
+  /* Cant decide table */
+  .cd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  .cd-table th {
+    text-align: left;
+    padding: 0.65rem 0.75rem;
+    border-bottom: 2px solid var(--color-border);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+  }
+  .cd-table td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .cd-table tr:hover td {
+    background: var(--color-bg-subtle);
+  }
+
+  /* Participant table */
+  .participant-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .participant-table th {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--color-border);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+  }
+  .participant-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .participant-table tr:hover td {
+    background: var(--color-bg-subtle);
+  }
+
+  /* Shared admin data tables (strategy library, algo logs use .cd-table) */
+  .admin-table--cards {
+    width: 100%;
+  }
+
+  .admin-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table__cell--actions {
+    padding-top: 0.65rem !important;
+    margin-top: 0.35rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--color-muted);
+    font-size: 0.95rem;
+  }
+
+  /* Edit modal */
+  .edit-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .edit-overlay.show {
+    display: flex;
+  }
+  .edit-card {
+    background: var(--color-white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    max-width: 550px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.3s ease;
+  }
+  .edit-card h3 {
+    font-family: var(--font-display);
+    margin-bottom: 1rem;
+  }
+  .edit-field {
+    margin-bottom: 0.75rem;
+  }
+  .edit-field label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    margin-bottom: 0.25rem;
+  }
+  .edit-field input,
+  .edit-field textarea,
+  .edit-field select {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+  }
+  .edit-field textarea {
+    min-height: 60px;
+    resize: vertical;
+  }
+  .edit-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .strategy-edit-delete {
+    margin-right: auto;
+  }
+
+  /* Mobile: stack table rows as cards (requires data-label on td) */
+  @media (max-width: 768px) {
+    .admin-table--cards thead {
+      display: none;
+    }
+    .admin-table--cards tbody {
+      display: block;
+    }
+    .admin-table--cards tbody tr {
+      display: block;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      margin-bottom: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      background: var(--color-white);
+      box-shadow: var(--shadow-sm);
+    }
+    .admin-table--cards tbody tr:hover td {
+      background: transparent;
+    }
+    .admin-table--cards tbody td {
+      display: block;
+      border: none;
+      padding: 0.4rem 0;
+      text-align: left;
+      max-width: none !important;
+    }
+    .admin-table--cards tbody td::before {
+      content: attr(data-label);
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-muted);
+      margin-bottom: 0.2rem;
+    }
+    .admin-table--cards tbody td[data-label=""]::before,
+    .admin-table--cards tbody td:not([data-label])::before {
+      display: none;
+    }
+    .admin-table--cards tbody tr + tr {
+      margin-top: 0;
+    }
+    .admin-table-wrapper {
+      overflow-x: visible;
+    }
+
+    /* Participants: 2-column card grid so session rows are shorter */
+    .participant-table.admin-table--cards {
+      display: block;
+      width: 100%;
+    }
+    .participant-table.admin-table--cards tbody {
+      display: block;
+      width: 100%;
+    }
+    .participant-table.admin-table--cards tbody tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem 0.75rem;
+      align-items: start;
+      overflow: visible;
+      min-height: 0;
+    }
+    .participant-table.admin-table--cards tbody td {
+      display: block;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      min-width: 0;
+      padding: 0.35rem 0;
+      overflow: visible;
+    }
+    .participant-table.admin-table--cards tbody td[data-label="Session ID"],
+    .participant-table.admin-table--cards tbody td[data-label="Levels"] {
+      grid-column: 1 / -1;
+    }
+    .participant-table.admin-table--cards tbody td[data-label="Session ID"] {
+      word-break: break-all;
+    }
+    /* Long level lists: scroll inside this cell so the row stays usable (page scroll still works) */
+    .participant-table.admin-table--cards tbody td[data-label="Levels"] {
+      max-height: min(36vh, 11rem);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    /* KPI tiles: grid children can clip labels without min-width + overflow */
+    .admin-stat-grid--participants .stat-card {
+      min-width: 0;
+      overflow: visible;
+    }
+    .admin-stat-grid--participants .stat-card__label {
+      overflow-wrap: anywhere;
+      hyphens: auto;
+      line-height: 1.35;
+    }
+    #panel-participants #participantTableContainer {
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .admin-container {
+      padding: 1rem;
+    }
+    .stat-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    .admin-stat-grid--cd {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .admin-stat-grid--cd .stat-card:nth-child(3) {
+      grid-column: 1 / -1;
+    }
+    .admin-stat-grid--participants {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .admin-stat-grid--algo {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .admin-stat-grid--algo .stat-card:nth-child(5) {
+      grid-column: 1 / -1;
+    }
+    .strategy-toolbar {
+      flex-direction: column;
+      align-items: stretch !important;
+    }
+    .strategy-toolbar .rank-select,
+    .strategy-toolbar input[type="text"] {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    .algo-log-toolbar {
+      flex-direction: column;
+      align-items: stretch !important;
+      gap: 0.75rem;
+    }
+    .admin-tabs {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      gap: 0;
+      flex-wrap: nowrap;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.25rem;
+    }
     .admin-tab {
-        padding: 0.75rem 1.5rem; border: none; background: none; font-family: var(--font-body);
-        font-size: 0.9rem; font-weight: 600; color: var(--color-muted); cursor: pointer;
-        border-bottom: 3px solid transparent; transition: var(--transition); margin-bottom: -2px;
+      padding: 0.65rem 1rem;
+      font-size: 0.82rem;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .admin-tab:hover { color: var(--color-text); }
-    .admin-tab.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
-
-    .admin-panel { display: none; }
-    .admin-panel.active { display: block; animation: fadeIn 0.3s ease; }
-
-    /* Stat cards */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-    .stat-card {
-        background: var(--color-primary-dark); color: var(--color-white); border-radius: var(--radius);
-        padding: 1.25rem 1.5rem; position: relative; overflow: hidden;
+    .rank-filters {
+      gap: 0.4rem;
     }
-    .stat-card__icon { font-size: 1.25rem; margin-bottom: 0.25rem; }
-    .stat-card__value { font-size: 2rem; font-weight: 700; line-height: 1.2; }
-    .stat-card__label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.65); margin-top: 0.15rem; }
-
-    /* Rankings */
-    .rank-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center; }
-    .rank-filter-label { font-size: 0.85rem; color: var(--color-muted); font-weight: 600; }
-    .rank-filter-btn {
-        padding: 0.4rem 1rem; border: 1px solid var(--color-border); background: var(--color-white);
-        border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: var(--transition);
-        font-family: var(--font-body);
-    }
-    .rank-filter-btn:hover { border-color: var(--color-accent); }
-    .rank-filter-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-primary-dark); font-weight: 600; }
-
-    .rank-select {
-        padding: 0.4rem 0.75rem; border: 1px solid var(--color-border); border-radius: 6px;
-        font-size: 0.85rem; font-family: var(--font-body); background: var(--color-white);
-    }
-
-    .ranking-list { display: flex; flex-direction: column; gap: 0.5rem; }
     .rank-item {
-        display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem;
-        background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius);
-        transition: var(--transition);
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
-    .rank-item:hover { border-color: var(--color-accent); }
-    .rank-number {
-        font-size: 1.1rem; font-weight: 700; color: var(--color-accent); min-width: 36px;
+    .rank-meta {
+      width: 100%;
+      font-size: 0.75rem;
     }
-    .rank-choice { flex: 1; font-size: 0.95rem; font-weight: 500; }
-    .rank-meta { font-size: 0.8rem; color: var(--color-muted); }
-
-    .rank-item--top { border-left: 4px solid var(--color-accent); }
-
-    /* Download btn */
-    .download-btn {
-        padding: 0.45rem 1rem; border: 1px solid var(--color-border); background: var(--color-white);
-        border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-family: var(--font-body);
-        transition: var(--transition); display: inline-flex; align-items: center; gap: 0.4rem;
+    .cd-table:not(.admin-table--cards),
+    .participant-table:not(.admin-table--cards) {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
-    .download-btn:hover { border-color: var(--color-muted); }
-
-    /* Review cards */
-    .review-card {
-        border: 1px solid var(--color-border); border-radius: var(--radius); padding: 1.25rem 1.5rem;
-        margin-bottom: 1rem; background: var(--color-white);
-    }
-    .review-card__header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
-    .review-card__date { font-size: 0.8rem; color: var(--color-muted); }
-    .review-card__role {
-        font-size: 0.75rem; padding: 0.2rem 0.6rem; background: var(--color-surface);
-        border-radius: 4px; font-weight: 600;
-    }
-    .review-card__text { font-size: 0.95rem; margin-bottom: 0.75rem; font-weight: 500; }
-    .review-card__actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-
-    .action-btn {
-        padding: 0.35rem 0.85rem; border: none; border-radius: 5px; font-size: 0.78rem;
-        font-weight: 700; cursor: pointer; text-transform: uppercase; font-family: var(--font-body);
-        transition: var(--transition); letter-spacing: 0.03em;
-    }
-    .action-btn--edit { background: var(--color-accent); color: var(--color-primary-dark); }
-    .action-btn--approve { background: var(--color-success); color: white; }
-    .action-btn--reject { background: var(--color-danger); color: white; }
-    .action-btn--duplicate { background: var(--color-muted); color: white; }
-    .action-btn:hover { opacity: 0.85; }
-
-    .review-select {
-        padding: 0.35rem 0.6rem; border: 1px solid var(--color-border); border-radius: 5px;
-        font-size: 0.82rem; font-family: var(--font-body);
-    }
-
-    .status-badge {
-        display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px;
-        font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-    }
-    .status-badge--pending { background: #fef3c7; color: #92400e; }
-    .status-badge--approved { background: #d1fae5; color: #065f46; }
-    .status-badge--rejected { background: #fee2e2; color: #991b1b; }
-    .status-badge--duplicate { background: #e5e7eb; color: #374151; }
-
-    /* Cant decide table */
-    .cd-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-    .cd-table th {
-        text-align: left; padding: 0.65rem 0.75rem; border-bottom: 2px solid var(--color-border);
-        font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-muted);
-    }
-    .cd-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--color-border); }
-    .cd-table tr:hover td { background: var(--color-bg-subtle); }
-
-    /* Participant table */
-    .participant-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    .participant-table th {
-        text-align: left; padding: 0.6rem 0.75rem; border-bottom: 2px solid var(--color-border);
-        font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-muted);
-    }
-    .participant-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--color-border); }
-    .participant-table tr:hover td { background: var(--color-bg-subtle); }
-
-    .empty-state {
-        text-align: center; padding: 3rem; color: var(--color-muted); font-size: 0.95rem;
-    }
-
-    /* Edit modal */
+    /* Modals: scroll the overlay so long forms (including strategy library edit) fit on small screens */
     .edit-overlay {
-        position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 500;
-        display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px);
+      align-items: flex-start;
+      justify-content: center;
+      padding: max(0.75rem, env(safe-area-inset-top)) 0.75rem
+        max(1rem, env(safe-area-inset-bottom));
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
-    .edit-overlay.show { display: flex; }
-    .edit-card {
-        background: var(--color-white); border-radius: var(--radius-lg); padding: 2rem;
-        max-width: 550px; width: 90%; box-shadow: var(--shadow-lg); animation: modalIn 0.3s ease;
+    .edit-overlay .edit-card {
+      padding: 1.25rem;
+      width: 100%;
+      max-width: 600px;
+      max-height: none;
+      overflow: visible;
+      margin: 0 auto 1.5rem;
+      flex-shrink: 0;
     }
-    .edit-card h3 { font-family: var(--font-display); margin-bottom: 1rem; }
-    .edit-field { margin-bottom: 0.75rem; }
-    .edit-field label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--color-muted); margin-bottom: 0.25rem; }
-    .edit-field input, .edit-field textarea, .edit-field select {
-        width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--color-border); border-radius: 6px;
-        font-family: var(--font-body); font-size: 0.9rem;
+    .review-card {
+      padding: 1rem;
     }
-    .edit-field textarea { min-height: 60px; resize: vertical; }
-    .edit-actions { display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end; }
+  }
 
-    /* Responsive */
-    @media (max-width: 768px) {
-        .stat-grid { grid-template-columns: repeat(2, 1fr); }
-        .admin-tabs { overflow-x: auto; }
-        .cd-table, .participant-table { display: block; overflow-x: auto; }
+  .admin-page-title {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.25;
+  }
+
+  @media (max-width: 480px) {
+    /* Keep two columns for main KPIs — easier to scan than a single column */
+    .stat-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.6rem;
     }
+    .stat-card {
+      padding: 1rem 1rem;
+    }
+    .stat-card__value {
+      font-size: 1.65rem;
+    }
+    .admin-page-title {
+      font-size: 1.35rem;
+      word-break: break-word;
+    }
+  }
 </style>
-{% endblock %}
-
-{% block body %}
+{% endblock %} {% block body %}
 <!-- Navbar -->
 <nav class="navbar">
-    <div class="navbar__left">
-        <button type="button" class="navbar__back" aria-label="Go back" onclick="window.location.href='/'">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </button>
-        <span class="navbar__title">Smoking Cessation Implementation Survey</span>
-    </div>
-    <div class="navbar__right">
-        <a href="/" class="nav-btn nav-btn--ghost navbar__home">Home</a>
-        <button class="nav-btn nav-btn--ghost" onclick="window.location.href='/survey'">Vote</button>
-        <button class="nav-btn nav-btn--ghost" onclick="openQuickGuideAdmin()">Help</button>
-        <button class="nav-btn nav-btn--vote" onclick="adminSignOut()">Sign out</button>
-    </div>
+  <div class="navbar__left">
+    <button
+      type="button"
+      class="navbar__back"
+      aria-label="Go back"
+      onclick="window.location.href = '/'"
+    >
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
+    </button>
+    <span class="navbar__title-wrap"
+      ><span class="navbar__title"
+        >Smoking Cessation Implementation Survey</span
+      ></span
+    >
+  </div>
+  <div class="navbar__right navbar__right--desktop">
+    <a href="/" class="nav-btn nav-btn--ghost navbar__home">Home</a>
+    <button
+      type="button"
+      class="nav-btn nav-btn--ghost"
+      onclick="window.location.href = '/survey'"
+    >
+      Vote
+    </button>
+    <button
+      type="button"
+      class="nav-btn nav-btn--ghost"
+      onclick="openQuickGuideAdmin()"
+    >
+      Help
+    </button>
+    <button
+      type="button"
+      class="nav-btn nav-btn--vote"
+      onclick="adminSignOut()"
+    >
+      Sign out
+    </button>
+  </div>
+  <button
+    type="button"
+    class="navbar__menu-toggle"
+    id="navbarMenuToggle"
+    aria-label="Open menu"
+    aria-expanded="false"
+    aria-controls="navbarMobileMenu"
+  >
+    <svg
+      class="navbar__menu-icon--open"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+    >
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+    <svg
+      class="navbar__menu-icon--close"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+    >
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  </button>
 </nav>
+<div
+  class="navbar-mobile-backdrop"
+  id="navbarMobileBackdrop"
+  aria-hidden="true"
+></div>
+<div
+  class="navbar-mobile-menu"
+  id="navbarMobileMenu"
+  role="dialog"
+  aria-label="Site menu"
+>
+  <a href="/" class="navbar-mobile-menu__link" onclick="closeNavbarMenu()"
+    >Home</a
+  >
+  <button
+    type="button"
+    class="navbar-mobile-menu__btn navbar-mobile-menu__btn--ghost"
+    onclick="
+      closeNavbarMenu();
+      window.location.href = '/survey';
+    "
+  >
+    Vote
+  </button>
+  <button
+    type="button"
+    class="navbar-mobile-menu__btn navbar-mobile-menu__btn--ghost"
+    onclick="openQuickGuideAdmin()"
+  >
+    Help
+  </button>
+  <button
+    type="button"
+    class="navbar-mobile-menu__btn navbar-mobile-menu__btn--danger"
+    onclick="
+      closeNavbarMenu();
+      adminSignOut();
+    "
+  >
+    Sign out
+  </button>
+</div>
 
 <div class="admin-container">
-    <h1 style="font-family: var(--font-display); font-size: 1.75rem; margin-bottom: 0.5rem;">
-        Survey Results
-        <span style="font-family: var(--font-body); font-size: 0.7rem; padding: 0.25rem 0.65rem; border-radius: 4px; vertical-align: middle; margin-left: 0.5rem;
+  <h1 class="admin-page-title">
+    Survey Results
+    <span
+      style="font-family: var(--font-body); font-size: 0.7rem; padding: 0.25rem 0.65rem; border-radius: 4px; vertical-align: middle; margin-left: 0.5rem;
             {% if survey_mode == 'production' %}background: #d1fae5; color: #065f46;{% else %}background: #fef3c7; color: #92400e;{% endif %}
-            font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">
-            {{ survey_mode }} mode
-        </span>
-    </h1>
-    <p style="color: var(--color-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Ranked implementation strategies based on participant votes</p>
+            font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;"
+    >
+      {{ survey_mode }} mode
+    </span>
+  </h1>
+  <p
+    style="color: var(--color-muted); font-size: 0.9rem; margin-bottom: 1.5rem"
+  >
+    Ranked implementation strategies based on participant votes
+  </p>
 
-    <!-- Stat cards -->
-    <div class="stat-grid" id="statGrid">
-        <div class="stat-card"><div class="stat-card__icon">📄</div><div class="stat-card__value" id="statStrategies">—</div><div class="stat-card__label">Total Strategies</div></div>
-        <div class="stat-card"><div class="stat-card__icon">🗳️</div><div class="stat-card__value" id="statVotes">—</div><div class="stat-card__label">Total Votes Cast</div></div>
-        <div class="stat-card"><div class="stat-card__icon">👥</div><div class="stat-card__value" id="statParticipants">—</div><div class="stat-card__label">Participants</div></div>
-        <div class="stat-card"><div class="stat-card__icon">📊</div><div class="stat-card__value" id="statIdeas">—</div><div class="stat-card__label">Ideas Submitted</div></div>
+  <!-- Stat cards -->
+  <div class="stat-grid" id="statGrid">
+    <div class="stat-card">
+      <div class="stat-card__icon">📄</div>
+      <div class="stat-card__value" id="statStrategies">—</div>
+      <div class="stat-card__label">Total Strategies</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon">🗳️</div>
+      <div class="stat-card__value" id="statVotes">—</div>
+      <div class="stat-card__label">Total Votes Cast</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon">👥</div>
+      <div class="stat-card__value" id="statParticipants">—</div>
+      <div class="stat-card__label">Participants</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon">📊</div>
+      <div class="stat-card__value" id="statIdeas">—</div>
+      <div class="stat-card__label">Ideas Submitted</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="admin-tabs">
+    <button
+      class="admin-tab active"
+      data-tab="rankings"
+      onclick="switchTab('rankings', this)"
+    >
+      Overall Ranking
+    </button>
+    <button
+      class="admin-tab"
+      data-tab="review"
+      onclick="switchTab('review', this)"
+    >
+      Review Strategies
+    </button>
+    <button
+      class="admin-tab"
+      data-tab="cantdecide"
+      onclick="switchTab('cantdecide', this)"
+    >
+      I Can't Decide
+    </button>
+    <button
+      class="admin-tab"
+      data-tab="participants"
+      onclick="switchTab('participants', this)"
+    >
+      Participants
+    </button>
+    <button
+      class="admin-tab"
+      data-tab="strategies"
+      onclick="switchTab('strategies', this)"
+    >
+      Edit All Strategies
+    </button>
+    <button
+      class="admin-tab"
+      data-tab="algologs"
+      onclick="switchTab('algologs', this)"
+    >
+      Algorithm Logs
+    </button>
+    <button
+      class="admin-tab"
+      data-tab="quickguide"
+      onclick="switchTab('quickguide', this)"
+    >
+      UpdateQuick Guide
+    </button>
+  </div>
+
+  <!-- Rankings Panel -->
+  <div class="admin-panel active" id="panel-rankings">
+    <div class="rank-filters rank-filters--rankings">
+      <span class="rank-filter-label">Filter:</span>
+      <button
+        class="rank-filter-btn active"
+        onclick="loadRankings('overall', '', this)"
+      >
+        Overall
+      </button>
+      <button class="rank-filter-btn" onclick="toggleSubFilter('role', this)">
+        By User Type
+      </button>
+      <button class="rank-filter-btn" onclick="toggleSubFilter('level', this)">
+        By Implementation Level
+      </button>
+      <button class="rank-filter-btn" onclick="toggleSubFilter('eric', this)">
+        By ERIC Strategy
+      </button>
+      <button class="download-btn" onclick="downloadCSV('rankings')">
+        ⬇ Download CSV
+      </button>
+      <div id="subFilterArea" class="rank-filters__sub" style="display: none">
+        <select
+          class="rank-select rank-select--native"
+          id="subFilterSelect"
+          onchange="onSubFilterSelectChange()"
+        ></select>
+        <button
+          type="button"
+          class="rank-select-fake"
+          id="subFilterFakeBtn"
+          hidden
+          aria-haspopup="listbox"
+          aria-expanded="false"
+        >
+          Choose…
+        </button>
+      </div>
+    </div>
+    <div class="ranking-list" id="rankingList">
+      <div class="empty-state">Loading rankings...</div>
+    </div>
+  </div>
+
+  <!-- Review Panel -->
+  <div class="admin-panel" id="panel-review">
+    <div class="stat-grid" style="grid-template-columns: repeat(4, 1fr)">
+      <div class="stat-card" style="background: #fef3c7; color: #92400e">
+        <div class="stat-card__value" id="reviewPending">—</div>
+        <div class="stat-card__label" style="color: #92400e">
+          📝 Pending Review
+        </div>
+      </div>
+      <div class="stat-card" style="background: #d1fae5; color: #065f46">
+        <div class="stat-card__value" id="reviewApproved">—</div>
+        <div class="stat-card__label" style="color: #065f46">✓ Approved</div>
+      </div>
+      <div class="stat-card" style="background: #fee2e2; color: #991b1b">
+        <div class="stat-card__value" id="reviewRejected">—</div>
+        <div class="stat-card__label" style="color: #991b1b">✕ Rejected</div>
+      </div>
+      <div class="stat-card" style="background: #e5e7eb; color: #374151">
+        <div class="stat-card__value" id="reviewDuplicated">—</div>
+        <div class="stat-card__label" style="color: #374151">◉ Duplicated</div>
+      </div>
+    </div>
+    <div class="rank-filters">
+      <span class="rank-filter-label">Filter:</span>
+      <button
+        class="rank-filter-btn active"
+        data-review-filter="all"
+        onclick="filterReview('all', this)"
+      >
+        All
+      </button>
+      <button
+        class="rank-filter-btn"
+        data-review-filter="pending"
+        onclick="filterReview('pending', this)"
+      >
+        Pending review
+      </button>
+      <button
+        class="rank-filter-btn"
+        data-review-filter="approved"
+        onclick="filterReview('approved', this)"
+      >
+        Approved
+      </button>
+      <button
+        class="rank-filter-btn"
+        data-review-filter="rejected"
+        onclick="filterReview('rejected', this)"
+      >
+        Rejected
+      </button>
+      <button
+        class="rank-filter-btn"
+        data-review-filter="duplicate"
+        onclick="filterReview('duplicate', this)"
+      >
+        Duplicated
+      </button>
+      <button class="download-btn" onclick="downloadCSV('ideas')">
+        ⬇ Download CSV
+      </button>
+    </div>
+    <div id="reviewList">
+      <div class="empty-state">Loading submitted strategies...</div>
+    </div>
+  </div>
+
+  <!-- Can't Decide Panel -->
+  <div class="admin-panel" id="panel-cantdecide">
+    <div
+      class="stat-grid admin-stat-grid--cd"
+      style="grid-template-columns: repeat(3, 1fr)"
+    >
+      <div class="stat-card">
+        <div class="stat-card__value" id="cdTotal">—</div>
+        <div class="stat-card__label">Total "Can't Decide"</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="cdSimilar">—</div>
+        <div class="stat-card__label">Too Similar</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="cdUnclear">—</div>
+        <div class="stat-card__label">Unclear</div>
+      </div>
+    </div>
+    <div id="cdTableContainer">
+      <div class="empty-state">Loading data...</div>
+    </div>
+  </div>
+
+  <!-- Participants Panel -->
+  <div class="admin-panel" id="panel-participants">
+    <div
+      class="stat-grid admin-stat-grid--participants"
+      style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))"
+    >
+      <div class="stat-card">
+        <div class="stat-card__value" id="pTotal">—</div>
+        <div class="stat-card__label">Total Participants</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="pProvider">—</div>
+        <div class="stat-card__label">Provider</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="pScientist">—</div>
+        <div class="stat-card__label">Impl. Scientist</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="pPatient">—</div>
+        <div class="stat-card__label">Patient/Family</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="pPolicy">—</div>
+        <div class="stat-card__label">Policy/Advocacy</div>
+      </div>
+    </div>
+    <div id="participantTableContainer">
+      <div class="empty-state">Loading participants...</div>
+    </div>
+  </div>
+
+  <!-- Strategy Library Panel -->
+  <div class="admin-panel" id="panel-strategies">
+    <div
+      class="strategy-toolbar"
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      "
+    >
+      <div>
+        <input
+          type="text"
+          id="strategySearch"
+          placeholder="Search strategies..."
+          class="rank-select"
+          style="width: 280px; padding: 0.5rem 0.75rem"
+          oninput="searchStrategiesDebounced()"
+        />
+      </div>
+      <div
+        style="color: var(--color-muted); font-size: 0.85rem"
+        id="strategyCountLabel"
+      >
+        Loading...
+      </div>
+    </div>
+    <div id="strategyListContainer">
+      <div class="empty-state">Loading strategies...</div>
+    </div>
+    <div
+      id="strategyPagination"
+      style="text-align: center; margin-top: 1rem"
+    ></div>
+  </div>
+
+  <!-- Algorithm Logs Panel -->
+  <div class="admin-panel" id="panel-algologs">
+    <div
+      class="stat-grid admin-stat-grid--algo"
+      style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr))"
+    >
+      <div class="stat-card">
+        <div class="stat-card__value" id="alTotal">—</div>
+        <div class="stat-card__label">Total Pair Selections</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="alColdStarts">—</div>
+        <div class="stat-card__label">Cold Starts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="alVotes">—</div>
+        <div class="stat-card__label">Resulted in Vote</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="alCantDecide">—</div>
+        <div class="stat-card__label">Resulted in Can't Decide</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="alAbandoned">—</div>
+        <div class="stat-card__label">Abandoned</div>
+      </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="admin-tabs">
-        <button class="admin-tab active" data-tab="rankings" onclick="switchTab('rankings', this)">Overall Ranking</button>
-        <button class="admin-tab" data-tab="review" onclick="switchTab('review', this)">Review Strategies</button>
-        <button class="admin-tab" data-tab="cantdecide" onclick="switchTab('cantdecide', this)">I Can't Decide</button>
-        <button class="admin-tab" data-tab="participants" onclick="switchTab('participants', this)">Participants</button>
-        <button class="admin-tab" data-tab="strategies" onclick="switchTab('strategies', this)">Strategy Library</button>
-        <button class="admin-tab" data-tab="algologs" onclick="switchTab('algologs', this)">Algorithm Logs</button>
+    <div
+      class="algo-log-toolbar"
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      "
+    >
+      <p
+        style="
+          color: var(--color-muted);
+          font-size: 0.85rem;
+          margin: 0;
+          flex: 1;
+          min-width: 200px;
+        "
+      >
+        Full audit trail of every pair the algorithm selected, its state at
+        selection time, and the outcome.
+      </p>
+      <button class="download-btn" onclick="exportAlgoLogs()">
+        ⬇ Export Full JSON
+      </button>
     </div>
 
-    <!-- Rankings Panel -->
-    <div class="admin-panel active" id="panel-rankings">
-        <div class="rank-filters">
-            <span class="rank-filter-label">Filter:</span>
-            <button class="rank-filter-btn active" onclick="loadRankings('overall', '', this)">Overall</button>
-            <button class="rank-filter-btn" onclick="toggleSubFilter('role', this)">By User Type</button>
-            <button class="rank-filter-btn" onclick="toggleSubFilter('level', this)">By Implementation Level</button>
-            <button class="rank-filter-btn" onclick="toggleSubFilter('eric', this)">By ERIC Strategy</button>
-            <button class="download-btn" onclick="downloadCSV('rankings')">⬇ Download CSV</button>
-        </div>
-        <div id="subFilterArea" style="margin-bottom: 1rem; display: none;">
-            <select class="rank-select" id="subFilterSelect" onchange="applySubFilter()"></select>
-        </div>
-        <div class="ranking-list" id="rankingList">
-            <div class="empty-state">Loading rankings...</div>
-        </div>
+    <div id="algoLogTableContainer">
+      <div class="empty-state">Loading algorithm logs...</div>
     </div>
+    <div
+      id="algoLogPagination"
+      style="text-align: center; margin-top: 1rem"
+    ></div>
+  </div>
 
-    <!-- Review Panel -->
-    <div class="admin-panel" id="panel-review">
-        <div class="stat-grid" style="grid-template-columns: repeat(4, 1fr);">
-            <div class="stat-card" style="background: #fef3c7; color: #92400e;">
-                <div class="stat-card__value" id="reviewPending">—</div>
-                <div class="stat-card__label" style="color: #92400e;">📝 Pending Review</div>
-            </div>
-            <div class="stat-card" style="background: #d1fae5; color: #065f46;">
-                <div class="stat-card__value" id="reviewApproved">—</div>
-                <div class="stat-card__label" style="color: #065f46;">✓ Approved</div>
-            </div>
-            <div class="stat-card" style="background: #fee2e2; color: #991b1b;">
-                <div class="stat-card__value" id="reviewRejected">—</div>
-                <div class="stat-card__label" style="color: #991b1b;">✕ Rejected</div>
-            </div>
-            <div class="stat-card" style="background: #e5e7eb; color: #374151;">
-                <div class="stat-card__value" id="reviewDuplicated">—</div>
-                <div class="stat-card__label" style="color: #374151;">◉ Duplicated</div>
-            </div>
-        </div>
-        <div class="rank-filters">
-            <span class="rank-filter-label">Filter:</span>
-            <button class="rank-filter-btn active" data-review-filter="all" onclick="filterReview('all', this)">All</button>
-            <button class="rank-filter-btn" data-review-filter="pending" onclick="filterReview('pending', this)">Pending review</button>
-            <button class="rank-filter-btn" data-review-filter="approved" onclick="filterReview('approved', this)">Approved</button>
-            <button class="rank-filter-btn" data-review-filter="rejected" onclick="filterReview('rejected', this)">Rejected</button>
-            <button class="rank-filter-btn" data-review-filter="duplicate" onclick="filterReview('duplicate', this)">Duplicated</button>
-            <button class="download-btn" onclick="downloadCSV('ideas')">⬇ Download CSV</button>
-        </div>
-        <div id="reviewList">
-            <div class="empty-state">Loading submitted strategies...</div>
-        </div>
+  <!-- Quick Guide video -->
+  <div class="admin-panel" id="panel-quickguide">
+    <p
+      style="
+        color: var(--color-muted);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        max-width: 42rem;
+      "
+    >
+      Controls the video at the top of the <strong>Help</strong> panel on the
+      voting page. Upload an MP4 here, or paste a YouTube, Vimeo, or direct link
+      to a video file. If both are set, the uploaded file is shown first.
+    </p>
+    <div class="review-card" style="max-width: 560px">
+      <div class="edit-field" style="margin-bottom: 1rem">
+        <label for="qgTitle">Video title</label>
+        <input
+          type="text"
+          id="qgTitle"
+          class="rank-select"
+          style="width: 100%; padding: 0.5rem 0.75rem; box-sizing: border-box"
+          placeholder="e.g. How to use the project app — A walkthrough"
+        />
+      </div>
+      <div class="edit-field" style="margin-bottom: 1rem">
+        <label for="qgUrl">Video link (optional)</label>
+        <input
+          type="url"
+          id="qgUrl"
+          class="rank-select"
+          style="width: 100%; padding: 0.5rem 0.75rem; box-sizing: border-box"
+          placeholder="https://www.youtube.com/watch?v=… or https://…/video.mp4"
+        />
+        <p
+          style="
+            font-size: 0.8rem;
+            color: var(--color-muted);
+            margin: 0.35rem 0 0;
+          "
+        >
+          YouTube, Vimeo, or a direct MP4 URL.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="download-btn"
+        onclick="saveQuickGuideSettings()"
+      >
+        Save title &amp; link
+      </button>
+
+      <hr
+        style="
+          border: none;
+          border-top: 1px solid var(--color-border);
+          margin: 1.25rem 0;
+        "
+      />
+
+      <div class="edit-field" style="margin-bottom: 0.75rem">
+        <label for="qgFile">Upload MP4</label>
+        <input type="file" id="qgFile" accept=".mp4,video/mp4" />
+      </div>
+      <p
+        id="qgUploadStatus"
+        style="
+          font-size: 0.85rem;
+          color: var(--color-muted);
+          margin-bottom: 0.75rem;
+        "
+      ></p>
+      <button
+        type="button"
+        class="download-btn"
+        onclick="uploadQuickGuideVideo()"
+      >
+        Upload video file
+      </button>
+      <button
+        type="button"
+        class="download-btn"
+        id="qgClearUploadBtn"
+        style="display: none; margin-left: 0.5rem"
+        onclick="clearQuickGuideUpload()"
+      >
+        Remove uploaded file
+      </button>
     </div>
-
-    <!-- Can't Decide Panel -->
-    <div class="admin-panel" id="panel-cantdecide">
-        <div class="stat-grid" style="grid-template-columns: repeat(3, 1fr);">
-            <div class="stat-card">
-                <div class="stat-card__value" id="cdTotal">—</div>
-                <div class="stat-card__label">Total "Can't Decide"</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card__value" id="cdSimilar">—</div>
-                <div class="stat-card__label">Too Similar</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card__value" id="cdUnclear">—</div>
-                <div class="stat-card__label">Unclear</div>
-            </div>
-        </div>
-        <div id="cdTableContainer">
-            <div class="empty-state">Loading data...</div>
-        </div>
-    </div>
-
-    <!-- Participants Panel -->
-    <div class="admin-panel" id="panel-participants">
-        <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
-            <div class="stat-card">
-                <div class="stat-card__value" id="pTotal">—</div>
-                <div class="stat-card__label">Total Participants</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card__value" id="pProvider">—</div>
-                <div class="stat-card__label">Provider</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card__value" id="pScientist">—</div>
-                <div class="stat-card__label">Impl. Scientist</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card__value" id="pPatient">—</div>
-                <div class="stat-card__label">Patient/Family</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card__value" id="pPolicy">—</div>
-                <div class="stat-card__label">Policy/Advocacy</div>
-            </div>
-        </div>
-        <div id="participantTableContainer">
-            <div class="empty-state">Loading participants...</div>
-        </div>
-    </div>
-
-    <!-- Strategy Library Panel -->
-    <div class="admin-panel" id="panel-strategies">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
-            <div>
-                <input type="text" id="strategySearch" placeholder="Search strategies..." class="rank-select" style="width: 280px; padding: 0.5rem 0.75rem;"
-                       oninput="searchStrategiesDebounced()">
-            </div>
-            <div style="color: var(--color-muted); font-size: 0.85rem;" id="strategyCountLabel">Loading...</div>
-        </div>
-        <div id="strategyListContainer">
-            <div class="empty-state">Loading strategies...</div>
-        </div>
-        <div id="strategyPagination" style="text-align: center; margin-top: 1rem;"></div>
-    </div>
-
-    <!-- Algorithm Logs Panel -->
-    <div class="admin-panel" id="panel-algologs">
-        <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
-            <div class="stat-card">
-                <div class="stat-card__value" id="alTotal">—</div>
-                <div class="stat-card__label">Total Pair Selections</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card__value" id="alColdStarts">—</div>
-                <div class="stat-card__label">Cold Starts</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card__value" id="alVotes">—</div>
-                <div class="stat-card__label">Resulted in Vote</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card__value" id="alCantDecide">—</div>
-                <div class="stat-card__label">Resulted in Can't Decide</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card__value" id="alAbandoned">—</div>
-                <div class="stat-card__label">Abandoned</div>
-            </div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <p style="color: var(--color-muted); font-size: 0.85rem;">Full audit trail of every pair the algorithm selected, its state at selection time, and the outcome.</p>
-            <button class="download-btn" onclick="exportAlgoLogs()">⬇ Export Full JSON</button>
-        </div>
-
-        <div id="algoLogTableContainer">
-            <div class="empty-state">Loading algorithm logs...</div>
-        </div>
-        <div id="algoLogPagination" style="text-align: center; margin-top: 1rem;"></div>
-    </div>
+  </div>
 </div>
 
 <!-- Edit Idea Modal -->
 <div class="edit-overlay" id="editOverlay">
-    <div class="edit-card">
-        <h3>Edit Strategy Details</h3>
-        <input type="hidden" id="editIdeaId">
-        <div class="edit-field">
-            <label>Strategy Text</label>
-            <textarea id="editIdeaText" rows="2"></textarea>
-        </div>
-        <div class="edit-field">
-            <label>Implementation Level</label>
-            <select id="editLevel">
-                <option value="">Select level...</option>
-                <option value="Provider">Provider</option>
-                <option value="Organization">Organization</option>
-                <option value="System">System</option>
-                <option value="Client">Client</option>
-                <option value="Organization, Provider">Organization, Provider</option>
-                <option value="Client, Provider">Client, Provider</option>
-                <option value="System, Organization">System, Organization</option>
-            </select>
-        </div>
-        <div class="edit-field">
-            <label>Primary ERIC Strategy</label>
-            <input type="text" id="editEric" placeholder="e.g., Conduct educational meetings">
-        </div>
-        <div class="edit-field">
-            <label>Secondary ERIC Strategies</label>
-            <input type="text" id="editSecondaryEric" placeholder="Optional">
-        </div>
-        <div class="edit-field">
-            <label>Evidence-Based Practice</label>
-            <input type="text" id="editEvidence" placeholder="Optional">
-        </div>
-        <div class="edit-field">
-            <label>Help Text</label>
-            <textarea id="editHelpText" rows="2" placeholder="Description shown to users"></textarea>
-        </div>
-        <div class="edit-actions">
-            <button class="action-btn action-btn--duplicate" onclick="closeEditModal()">Cancel</button>
-            <button class="action-btn action-btn--approve" onclick="saveEdit()">Save Changes</button>
-        </div>
+  <div class="edit-card">
+    <h3>Edit Strategy Details</h3>
+    <input type="hidden" id="editIdeaId" />
+    <div class="edit-field">
+      <label>Strategy Text</label>
+      <textarea id="editIdeaText" rows="2"></textarea>
     </div>
+    <div class="edit-field">
+      <label>Implementation Level</label>
+      <select id="editLevel">
+        <option value="">Select level...</option>
+        <option value="Provider">Provider</option>
+        <option value="Organization">Organization</option>
+        <option value="System">System</option>
+        <option value="Client">Client</option>
+        <option value="Organization, Provider">Organization, Provider</option>
+        <option value="Client, Provider">Client, Provider</option>
+        <option value="System, Organization">System, Organization</option>
+      </select>
+    </div>
+    <div class="edit-field">
+      <label>Primary ERIC Strategy</label>
+      <input
+        type="text"
+        id="editEric"
+        placeholder="e.g., Conduct educational meetings"
+      />
+    </div>
+    <div class="edit-field">
+      <label>Secondary ERIC Strategies</label>
+      <input type="text" id="editSecondaryEric" placeholder="Optional" />
+    </div>
+    <div class="edit-field">
+      <label>Evidence-Based Practice</label>
+      <input type="text" id="editEvidence" placeholder="Optional" />
+    </div>
+    <div class="edit-field">
+      <label>Help Text</label>
+      <textarea
+        id="editHelpText"
+        rows="2"
+        placeholder="Description shown to users"
+      ></textarea>
+    </div>
+    <div class="edit-actions">
+      <button
+        class="action-btn action-btn--duplicate"
+        onclick="closeEditModal()"
+      >
+        Cancel
+      </button>
+      <button class="action-btn action-btn--approve" onclick="saveEdit()">
+        Save Changes
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- Strategy Edit Modal -->
 <div class="edit-overlay" id="strategyEditOverlay">
-    <div class="edit-card" style="max-width: 600px;">
-        <h3>Edit Strategy</h3>
-        <input type="hidden" id="seId">
-        <div class="edit-field">
-            <label>Strategy Text</label>
-            <textarea id="seChoice" rows="3"></textarea>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div class="edit-field">
-                <label>Level(s)</label>
-                <input type="text" id="seLevel" placeholder="e.g., Organization, Provider">
-            </div>
-            <div class="edit-field">
-                <label>Actor Level</label>
-                <input type="text" id="seActorLevel" placeholder="e.g., Organization">
-            </div>
-            <div class="edit-field">
-                <label>Recipient Level</label>
-                <input type="text" id="seRecipientLevel" placeholder="e.g., Provider">
-            </div>
-            <div class="edit-field">
-                <label>Primary ERIC Strategy</label>
-                <input type="text" id="seEric" placeholder="e.g., Audit and provide feedback">
-            </div>
-            <div class="edit-field">
-                <label>Secondary ERIC Strategies</label>
-                <input type="text" id="seSecondaryEric">
-            </div>
-            <div class="edit-field">
-                <label>Evidence-Based Practice</label>
-                <input type="text" id="seEvidence">
-            </div>
-            <div class="edit-field">
-                <label>Source</label>
-                <input type="text" id="seSource">
-            </div>
-            <div class="edit-field">
-                <label>Other Source</label>
-                <input type="text" id="seOtherSource">
-            </div>
-        </div>
-        <div class="edit-field">
-            <label>Help Text</label>
-            <textarea id="seHelpText" rows="2" placeholder="Description shown to users via info icon"></textarea>
-        </div>
-        <div class="edit-field">
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                <input type="checkbox" id="seActive" style="width: 18px; height: 18px; accent-color: var(--color-success);">
-                Active (appears in voting pairs)
-            </label>
-        </div>
-        <div class="edit-actions">
-            <button class="action-btn action-btn--reject" onclick="deleteStrategy()" style="margin-right: auto;">Delete from database…</button>
-            <button class="action-btn action-btn--duplicate" onclick="closeStrategyEdit()">Cancel</button>
-            <button class="action-btn action-btn--approve" onclick="saveStrategyEdit()">Save Changes</button>
-        </div>
+  <div class="edit-card" style="max-width: 600px">
+    <h3>Edit Strategy</h3>
+    <input type="hidden" id="seId" />
+    <div class="edit-field">
+      <label>Strategy Text</label>
+      <textarea id="seChoice" rows="2"></textarea>
     </div>
+    <div
+      class="strategy-edit-grid"
+      style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem"
+    >
+      <div class="edit-field">
+        <label>Level(s)</label>
+        <input
+          type="text"
+          id="seLevel"
+          placeholder="e.g., Organization, Provider"
+        />
+      </div>
+      <div class="edit-field">
+        <label>Actor Level</label>
+        <input type="text" id="seActorLevel" placeholder="e.g., Organization" />
+      </div>
+      <div class="edit-field">
+        <label>Recipient Level</label>
+        <input type="text" id="seRecipientLevel" placeholder="e.g., Provider" />
+      </div>
+      <div class="edit-field">
+        <label>Primary ERIC Strategy</label>
+        <input
+          type="text"
+          id="seEric"
+          placeholder="e.g., Audit and provide feedback"
+        />
+      </div>
+      <div class="edit-field">
+        <label>Secondary ERIC Strategies</label>
+        <input type="text" id="seSecondaryEric" />
+      </div>
+      <div class="edit-field">
+        <label>Evidence-Based Practice</label>
+        <input type="text" id="seEvidence" />
+      </div>
+      <div class="edit-field">
+        <label>Source</label>
+        <input type="text" id="seSource" />
+      </div>
+      <div class="edit-field">
+        <label>Other Source</label>
+        <input type="text" id="seOtherSource" />
+      </div>
+    </div>
+    <div class="edit-field">
+      <label>Help Text</label>
+      <textarea
+        id="seHelpText"
+        rows="2"
+        placeholder="Description shown to users via info icon"
+      ></textarea>
+    </div>
+    <div class="edit-field">
+      <label
+        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer"
+      >
+        <input
+          type="checkbox"
+          id="seActive"
+          style="width: 18px; height: 18px; accent-color: var(--color-success)"
+        />
+        Active (appears in voting pairs)
+      </label>
+    </div>
+    <div class="edit-actions">
+      <button
+        type="button"
+        class="action-btn action-btn--reject strategy-edit-delete"
+        onclick="deleteStrategy()"
+      >
+        Delete from database…
+      </button>
+      <button
+        type="button"
+        class="action-btn action-btn--duplicate"
+        onclick="closeStrategyEdit()"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="action-btn action-btn--approve"
+        onclick="saveStrategyEdit()"
+      >
+        Save Changes
+      </button>
+    </div>
+  </div>
 </div>
 
-{% endblock %}
+<!-- Fixed to viewport: avoids iOS/WebKit misplacing native <select> popovers -->
+<div
+  id="subFilterSheetBackdrop"
+  class="rank-select-sheet-backdrop"
+  hidden
+  aria-hidden="true"
+></div>
+<div
+  id="subFilterSheet"
+  class="rank-select-sheet"
+  hidden
+  role="listbox"
+  aria-label="Ranking filter options"
+></div>
 
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-    let currentSubFilter = null;
-    let allIdeas = [];
+  let currentSubFilter = null;
+  let allIdeas = [];
 
-    // ── Init ──
-    document.addEventListener('DOMContentLoaded', () => {
-        loadRankings('overall', '');
-        loadReview('all');
-        loadCantDecides();
-        loadParticipants();
-        loadStrategies(1);
-        loadAlgoLogs(1);
+  function closeNavbarMenu() {
+    const menu = document.getElementById("navbarMobileMenu");
+    const backdrop = document.getElementById("navbarMobileBackdrop");
+    const toggle = document.getElementById("navbarMenuToggle");
+    if (!menu || !backdrop || !toggle) return;
+    menu.classList.remove("show");
+    backdrop.classList.remove("show");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "Open menu");
+    document.body.classList.remove("navbar-menu-open");
+  }
+
+  function toggleNavbarMenu() {
+    const menu = document.getElementById("navbarMobileMenu");
+    const backdrop = document.getElementById("navbarMobileBackdrop");
+    const toggle = document.getElementById("navbarMenuToggle");
+    if (!menu || !backdrop || !toggle) return;
+    const open = !menu.classList.contains("show");
+    menu.classList.toggle("show", open);
+    backdrop.classList.toggle("show", open);
+    toggle.setAttribute("aria-expanded", open);
+    toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    document.body.classList.toggle("navbar-menu-open", open);
+  }
+
+  // ── Init ──
+  document.addEventListener("DOMContentLoaded", () => {
+    const toggle = document.getElementById("navbarMenuToggle");
+    const backdrop = document.getElementById("navbarMobileBackdrop");
+    if (toggle) toggle.addEventListener("click", toggleNavbarMenu);
+    if (backdrop) backdrop.addEventListener("click", closeNavbarMenu);
+
+    const subFake = document.getElementById("subFilterFakeBtn");
+    const subSheetBackdrop = document.getElementById("subFilterSheetBackdrop");
+    if (subFake) {
+      subFake.addEventListener("click", () => {
+        const sheet = document.getElementById("subFilterSheet");
+        if (sheet && sheet.hidden) openSubFilterSheet();
+        else closeSubFilterSheet();
+      });
+    }
+    if (subSheetBackdrop)
+      subSheetBackdrop.addEventListener("click", closeSubFilterSheet);
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeSubFilterSheet();
+        closeNavbarMenu();
+      }
     });
 
-    // ── Admin sign out ──
-    async function adminSignOut() {
-        const res = await api('/api/admin/logout', {});
-        window.location.href = res.redirect || '/admin';
+    loadRankings("overall", "");
+    loadReview("all");
+    loadCantDecides();
+    loadParticipants();
+    loadStrategies(1);
+    loadAlgoLogs(1);
+    loadQuickGuideSettings();
+  });
+
+  // ── Admin sign out ──
+  async function adminSignOut() {
+    closeNavbarMenu();
+    const res = await api("/api/admin/logout", {});
+    window.location.href = res.redirect || "/admin";
+  }
+
+  // ── Tab switching ──
+  function switchTab(tab, btn) {
+    unlockSubFilterBodyScroll();
+    closeSubFilterSheet();
+    document
+      .querySelectorAll(".admin-tab")
+      .forEach((t) => t.classList.remove("active"));
+    document
+      .querySelectorAll(".admin-panel")
+      .forEach((p) => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("panel-" + tab).classList.add("active");
+  }
+
+  // ── Rankings sub-filter (mobile bottom sheet; native <select> popover is unreliable on iOS WebKit) ──
+  let subFilterBodyScrollY = 0;
+  let subFilterBodyLocked = false;
+
+  function unlockSubFilterBodyScroll() {
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    document.body.style.overflow = "";
+    if (subFilterBodyLocked) {
+      window.scrollTo(0, subFilterBodyScrollY);
+      subFilterBodyLocked = false;
     }
+  }
 
-    // ── Tab switching ──
-    function switchTab(tab, btn) {
-        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('panel-' + tab).classList.add('active');
+  function lockSubFilterBodyScroll() {
+    subFilterBodyScrollY =
+      window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${subFilterBodyScrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    subFilterBodyLocked = true;
+  }
+
+  function closeSubFilterSheet() {
+    const sheet = document.getElementById("subFilterSheet");
+    const backdrop = document.getElementById("subFilterSheetBackdrop");
+    if (!sheet || !backdrop) return;
+    sheet.hidden = true;
+    backdrop.hidden = true;
+    backdrop.setAttribute("aria-hidden", "true");
+    const fb = document.getElementById("subFilterFakeBtn");
+    if (fb) fb.setAttribute("aria-expanded", "false");
+    unlockSubFilterBodyScroll();
+  }
+
+  function openSubFilterSheet() {
+    const sheet = document.getElementById("subFilterSheet");
+    const backdrop = document.getElementById("subFilterSheetBackdrop");
+    if (!sheet || !backdrop) return;
+    backdrop.hidden = false;
+    backdrop.setAttribute("aria-hidden", "false");
+    sheet.hidden = false;
+    lockSubFilterBodyScroll();
+    const scrollEl = sheet.querySelector(".rank-select-sheet__scroll");
+    requestAnimationFrame(() => {
+      if (scrollEl) scrollEl.scrollTop = 0;
+    });
+    const fb = document.getElementById("subFilterFakeBtn");
+    if (fb) fb.setAttribute("aria-expanded", "true");
+  }
+
+  function setupSubFilterMobileUI() {
+    const select = document.getElementById("subFilterSelect");
+    const fake = document.getElementById("subFilterFakeBtn");
+    const sheet = document.getElementById("subFilterSheet");
+    if (!select || !fake || !sheet) return;
+    const mobile = window.matchMedia("(max-width: 768px)").matches;
+    fake.hidden = !mobile;
+    closeSubFilterSheet();
+    if (!mobile) return;
+    const cur = select.options[select.selectedIndex];
+    fake.textContent = cur ? cur.text : "Choose…";
+    sheet.innerHTML = "";
+    const scroll = document.createElement("div");
+    scroll.className = "rank-select-sheet__scroll";
+    scroll.setAttribute("role", "presentation");
+    Array.from(select.options).forEach((opt, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className =
+        "rank-select-sheet__opt" +
+        (opt.selected ? " rank-select-sheet__opt--active" : "");
+      b.textContent = opt.text;
+      b.setAttribute("role", "option");
+      b.setAttribute("aria-selected", opt.selected ? "true" : "false");
+      b.addEventListener("click", () => {
+        select.selectedIndex = i;
+        fake.textContent = select.options[i].text;
+        closeSubFilterSheet();
+        applySubFilter();
+      });
+      scroll.appendChild(b);
+    });
+    sheet.appendChild(scroll);
+  }
+
+  function onSubFilterSelectChange() {
+    applySubFilter();
+  }
+
+  // ── Rankings ──
+  async function loadRankings(filter, value, btn) {
+    if (btn) {
+      document
+        .querySelectorAll(".rank-filters .rank-filter-btn")
+        .forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
     }
+    document.getElementById("subFilterArea").style.display = "none";
+    closeSubFilterSheet();
+    currentSubFilter = null;
 
-    // ── Rankings ──
-    async function loadRankings(filter, value, btn) {
-        if (btn) {
-            document.querySelectorAll('.rank-filters .rank-filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        }
-        document.getElementById('subFilterArea').style.display = 'none';
-        currentSubFilter = null;
+    const res = await api(
+      `/api/admin/rankings?filter=${filter}&value=${encodeURIComponent(value)}`,
+    );
+    document.getElementById("statStrategies").textContent =
+      res.total_strategies || 0;
+    document.getElementById("statVotes").textContent = res.total_votes || 0;
+    document.getElementById("statParticipants").textContent =
+      res.total_participants || 0;
 
-        const res = await api(`/api/admin/rankings?filter=${filter}&value=${encodeURIComponent(value)}`);
-        document.getElementById('statStrategies').textContent = res.total_strategies || 0;
-        document.getElementById('statVotes').textContent = res.total_votes || 0;
-        document.getElementById('statParticipants').textContent = res.total_participants || 0;
+    renderRankings(res.rankings || []);
+  }
 
-        renderRankings(res.rankings || []);
+  function renderRankings(rankings) {
+    const list = document.getElementById("rankingList");
+    if (!rankings.length) {
+      list.innerHTML =
+        '<div class="empty-state">No rankings yet. Votes need to be cast first.</div>';
+      return;
     }
-
-    function renderRankings(rankings) {
-        const list = document.getElementById('rankingList');
-        if (!rankings.length) {
-            list.innerHTML = '<div class="empty-state">No rankings yet. Votes need to be cast first.</div>';
-            return;
-        }
-        list.innerHTML = rankings.map((r, i) => `
-            <div class="rank-item ${i < 3 ? 'rank-item--top' : ''}">
+    list.innerHTML = rankings
+      .map(
+        (r, i) => `
+            <div class="rank-item ${i < 3 ? "rank-item--top" : ""}">
                 <span class="rank-number">#${i + 1}</span>
                 <span class="rank-choice">${r.choice}</span>
                 <span class="rank-meta">Score: ${r.score}% · Wins: ${r.wins} · Appearances: ${r.appearances}</span>
             </div>
-        `).join('');
+        `,
+      )
+      .join("");
+  }
+
+  function toggleSubFilter(type, btn) {
+    document
+      .querySelectorAll(".rank-filters .rank-filter-btn")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentSubFilter = type;
+
+    const area = document.getElementById("subFilterArea");
+    const select = document.getElementById("subFilterSelect");
+    area.style.display = "block";
+
+    let options = "";
+    if (type === "role") {
+      options =
+        '<option value="">All roles</option><option value="Provider">Provider</option><option value="Implementation Scientist">Implementation Scientist</option><option value="Patient/Family">Patient/Family</option><option value="Policy/Advocacy">Policy/Advocacy</option>';
+    } else if (type === "level") {
+      options =
+        '<option value="">All levels</option><option value="Provider">Provider</option><option value="Organization">Organization</option><option value="System">System</option><option value="Client">Client</option>';
+    } else if (type === "eric") {
+      options = '<option value="">All ERIC strategies</option>';
+      // Will be populated from data
     }
+    select.innerHTML = options;
+    setupSubFilterMobileUI();
+  }
 
-    function toggleSubFilter(type, btn) {
-        document.querySelectorAll('.rank-filters .rank-filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentSubFilter = type;
+  function applySubFilter() {
+    const val = document.getElementById("subFilterSelect").value;
+    const filterType = currentSubFilter === "eric" ? "eric" : currentSubFilter;
+    loadRankings(filterType, val);
+  }
 
-        const area = document.getElementById('subFilterArea');
-        const select = document.getElementById('subFilterSelect');
-        area.style.display = 'block';
+  // ── Review ──
+  async function loadReview(status) {
+    const res = await api(`/api/admin/submitted-ideas?status=${status}`);
+    allIdeas = res.ideas || [];
 
-        let options = '';
-        if (type === 'role') {
-            options = '<option value="">All roles</option><option value="Provider">Provider</option><option value="Implementation Scientist">Implementation Scientist</option><option value="Patient/Family">Patient/Family</option><option value="Policy/Advocacy">Policy/Advocacy</option>';
-        } else if (type === 'level') {
-            options = '<option value="">All levels</option><option value="Provider">Provider</option><option value="Organization">Organization</option><option value="System">System</option><option value="Client">Client</option>';
-        } else if (type === 'eric') {
-            options = '<option value="">All ERIC strategies</option>';
-            // Will be populated from data
-        }
-        select.innerHTML = options;
+    document.getElementById("reviewPending").textContent =
+      res.counts?.pending || 0;
+    document.getElementById("reviewApproved").textContent =
+      res.counts?.approved || 0;
+    document.getElementById("reviewRejected").textContent =
+      res.counts?.rejected || 0;
+    document.getElementById("reviewDuplicated").textContent =
+      res.counts?.duplicate || 0;
+    document.getElementById("statIdeas").textContent = res.counts?.total || 0;
+
+    renderReview(allIdeas);
+  }
+
+  function filterReview(status, btn) {
+    document
+      .querySelectorAll("[data-review-filter]")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    loadReview(status);
+  }
+
+  function renderReview(ideas) {
+    const container = document.getElementById("reviewList");
+    if (!ideas.length) {
+      container.innerHTML =
+        '<div class="empty-state">No submitted strategies found.</div>';
+      return;
     }
+    container.innerHTML = ideas
+      .map((idea) => {
+        const date = new Date(idea.created_at);
+        const dateStr =
+          date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }) +
+          " at " +
+          date.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        const statusBadge = `<span class="status-badge status-badge--${idea.status}">${idea.status}</span>`;
+        const levelBadge = idea.assigned_level
+          ? `<span class="review-card__role" style="background: var(--level-${idea.assigned_level.split(",")[0].trim().toLowerCase()}-bg, var(--color-surface));">${idea.assigned_level}</span>`
+          : "";
 
-    function applySubFilter() {
-        const val = document.getElementById('subFilterSelect').value;
-        const filterType = currentSubFilter === 'eric' ? 'eric' : currentSubFilter;
-        loadRankings(filterType, val);
-    }
-
-    // ── Review ──
-    async function loadReview(status) {
-        const res = await api(`/api/admin/submitted-ideas?status=${status}`);
-        allIdeas = res.ideas || [];
-
-        document.getElementById('reviewPending').textContent = res.counts?.pending || 0;
-        document.getElementById('reviewApproved').textContent = res.counts?.approved || 0;
-        document.getElementById('reviewRejected').textContent = res.counts?.rejected || 0;
-        document.getElementById('reviewDuplicated').textContent = res.counts?.duplicate || 0;
-        document.getElementById('statIdeas').textContent = res.counts?.total || 0;
-
-        renderReview(allIdeas);
-    }
-
-    function filterReview(status, btn) {
-        document.querySelectorAll('[data-review-filter]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        loadReview(status);
-    }
-
-    function renderReview(ideas) {
-        const container = document.getElementById('reviewList');
-        if (!ideas.length) {
-            container.innerHTML = '<div class="empty-state">No submitted strategies found.</div>';
-            return;
-        }
-        container.innerHTML = ideas.map(idea => {
-            const date = new Date(idea.created_at);
-            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
-                           ' at ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            const statusBadge = `<span class="status-badge status-badge--${idea.status}">${idea.status}</span>`;
-            const levelBadge = idea.assigned_level
-                ? `<span class="review-card__role" style="background: var(--level-${(idea.assigned_level.split(',')[0].trim().toLowerCase())}-bg, var(--color-surface));">${idea.assigned_level}</span>`
-                : '';
-
-            return `
+        return `
             <div class="review-card">
                 <div class="review-card__header">
                     <span class="review-card__date">${dateStr}</span>
@@ -599,202 +1844,266 @@
                 <div class="review-card__actions">
                     <select class="review-select" id="levelSelect-${idea.id}">
                         <option value="">Assign level...</option>
-                        <option value="Provider" ${idea.assigned_level === 'Provider' ? 'selected' : ''}>Provider</option>
-                        <option value="Organization" ${idea.assigned_level === 'Organization' ? 'selected' : ''}>Organization</option>
-                        <option value="System" ${idea.assigned_level === 'System' ? 'selected' : ''}>System</option>
-                        <option value="Client" ${idea.assigned_level === 'Client' ? 'selected' : ''}>Client</option>
+                        <option value="Provider" ${idea.assigned_level === "Provider" ? "selected" : ""}>Provider</option>
+                        <option value="Organization" ${idea.assigned_level === "Organization" ? "selected" : ""}>Organization</option>
+                        <option value="System" ${idea.assigned_level === "System" ? "selected" : ""}>System</option>
+                        <option value="Client" ${idea.assigned_level === "Client" ? "selected" : ""}>Client</option>
                     </select>
-                    <button class="action-btn action-btn--edit" onclick="openEditModal(${idea.id}, '${escapeJS(idea.idea_text)}', '${idea.assigned_level || ''}', '${idea.assigned_primary_eric || ''}', '${idea.assigned_secondary_eric || ''}', '${idea.assigned_evidence_based || ''}', '${escapeJS(idea.assigned_help_text || '')}')">Edit</button>
+                    <button class="action-btn action-btn--edit" onclick="openEditModal(${idea.id}, '${escapeJS(idea.idea_text)}', '${idea.assigned_level || ""}', '${idea.assigned_primary_eric || ""}', '${idea.assigned_secondary_eric || ""}', '${idea.assigned_evidence_based || ""}', '${escapeJS(idea.assigned_help_text || "")}')">Edit</button>
                     <button class="action-btn action-btn--approve" onclick="reviewAction(${idea.id}, 'approved')">Approve</button>
                     <button class="action-btn action-btn--reject" onclick="reviewAction(${idea.id}, 'rejected')">Reject</button>
                     <button class="action-btn action-btn--duplicate" onclick="reviewAction(${idea.id}, 'duplicate')">Mark as Duplicate</button>
                 </div>
             </div>`;
-        }).join('');
+      })
+      .join("");
+  }
+
+  function escapeJS(str) {
+    return (str || "")
+      .replace(/'/g, "\\'")
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, "\\n");
+  }
+
+  async function reviewAction(ideaId, action) {
+    const levelSelect = document.getElementById("levelSelect-" + ideaId);
+    const level = levelSelect ? levelSelect.value : "";
+
+    if (action === "approved" && !level) {
+      showToast(
+        "Please assign an implementation level before approving",
+        "error",
+      );
+      return;
     }
 
-    function escapeJS(str) {
-        return (str || '').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
-    }
-
-    async function reviewAction(ideaId, action) {
-        const levelSelect = document.getElementById('levelSelect-' + ideaId);
-        const level = levelSelect ? levelSelect.value : '';
-
-        if (action === 'approved' && !level) {
-            showToast('Please assign an implementation level before approving', 'error');
-            return;
-        }
-
-        const res = await api('/api/admin/review-idea', {
-            idea_id: ideaId,
-            action: action,
-            level: level,
-        });
-
-        if (res.success) {
-            showToast(`Strategy ${action} successfully`);
-            loadReview('all');
-        }
-    }
-
-    // ── Edit modal ──
-    function openEditModal(id, text, level, eric, secondaryEric, evidence, helpText) {
-        document.getElementById('editIdeaId').value = id;
-        document.getElementById('editIdeaText').value = text;
-        document.getElementById('editLevel').value = level;
-        document.getElementById('editEric').value = eric;
-        document.getElementById('editSecondaryEric').value = secondaryEric;
-        document.getElementById('editEvidence').value = evidence;
-        document.getElementById('editHelpText').value = helpText;
-        document.getElementById('editOverlay').classList.add('show');
-    }
-
-    function closeEditModal() {
-        document.getElementById('editOverlay').classList.remove('show');
-    }
-
-    async function saveEdit() {
-        const ideaId = document.getElementById('editIdeaId').value;
-        const res = await api('/api/admin/review-idea', {
-            idea_id: parseInt(ideaId),
-            action: 'pending', // keep as pending, just update fields
-            level: document.getElementById('editLevel').value,
-            primary_eric: document.getElementById('editEric').value,
-            secondary_eric: document.getElementById('editSecondaryEric').value,
-            evidence_based: document.getElementById('editEvidence').value,
-            help_text: document.getElementById('editHelpText').value,
-        });
-        if (res.success) {
-            showToast('Strategy details updated');
-            closeEditModal();
-            loadReview('all');
-        }
-    }
-
-    document.getElementById('editOverlay').addEventListener('click', function(e) {
-        if (e.target === this) closeEditModal();
+    const res = await api("/api/admin/review-idea", {
+      idea_id: ideaId,
+      action: action,
+      level: level,
     });
 
-    // ── Can't Decide ──
-    async function loadCantDecides() {
-        const res = await api('/api/admin/cant-decides');
-        document.getElementById('cdTotal').textContent = res.total || 0;
-        document.getElementById('cdSimilar').textContent = res.by_reason?.too_similar || 0;
-        document.getElementById('cdUnclear').textContent = res.by_reason?.unclear || 0;
+    if (res.success) {
+      showToast(`Strategy ${action} successfully`);
+      loadReview("all");
+    }
+  }
 
-        const container = document.getElementById('cdTableContainer');
-        if (!res.records || !res.records.length) {
-            container.innerHTML = '<div class="empty-state">No "I can\'t decide" responses recorded yet.</div>';
-            return;
-        }
+  // ── Edit modal ──
+  function openEditModal(
+    id,
+    text,
+    level,
+    eric,
+    secondaryEric,
+    evidence,
+    helpText,
+  ) {
+    document.getElementById("editIdeaId").value = id;
+    document.getElementById("editIdeaText").value = text;
+    document.getElementById("editLevel").value = level;
+    document.getElementById("editEric").value = eric;
+    document.getElementById("editSecondaryEric").value = secondaryEric;
+    document.getElementById("editEvidence").value = evidence;
+    document.getElementById("editHelpText").value = helpText;
+    document.getElementById("editOverlay").classList.add("show");
+  }
 
-        container.innerHTML = `
-        <table class="cd-table">
+  function closeEditModal() {
+    document.getElementById("editOverlay").classList.remove("show");
+  }
+
+  async function saveEdit() {
+    const ideaId = document.getElementById("editIdeaId").value;
+    const res = await api("/api/admin/review-idea", {
+      idea_id: parseInt(ideaId),
+      action: "pending", // keep as pending, just update fields
+      level: document.getElementById("editLevel").value,
+      primary_eric: document.getElementById("editEric").value,
+      secondary_eric: document.getElementById("editSecondaryEric").value,
+      evidence_based: document.getElementById("editEvidence").value,
+      help_text: document.getElementById("editHelpText").value,
+    });
+    if (res.success) {
+      showToast("Strategy details updated");
+      closeEditModal();
+      loadReview("all");
+    }
+  }
+
+  document
+    .getElementById("editOverlay")
+    .addEventListener("click", function (e) {
+      if (e.target === this) closeEditModal();
+    });
+
+  // ── Can't Decide ──
+  async function loadCantDecides() {
+    const res = await api("/api/admin/cant-decides");
+    document.getElementById("cdTotal").textContent = res.total || 0;
+    document.getElementById("cdSimilar").textContent =
+      res.by_reason?.too_similar || 0;
+    document.getElementById("cdUnclear").textContent =
+      res.by_reason?.unclear || 0;
+
+    const container = document.getElementById("cdTableContainer");
+    if (!res.records || !res.records.length) {
+      container.innerHTML =
+        '<div class="empty-state">No "I can\'t decide" responses recorded yet.</div>';
+      return;
+    }
+
+    container.innerHTML = `
+        <table class="cd-table admin-table admin-table--cards">
             <thead>
                 <tr><th>Date</th><th>Strategy A</th><th>Strategy B</th><th>Reason</th><th>Level</th><th>User Role</th></tr>
             </thead>
             <tbody>
-                ${res.records.map(r => {
+                ${res.records
+                  .map((r) => {
                     const date = new Date(r.created_at);
-                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
-                                   date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                    const reason = r.reason === 'too_similar' ? 'Too similar' : 'Unclear';
+                    const dateStr =
+                      date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      }) +
+                      " " +
+                      date.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+                    const reason =
+                      r.reason === "too_similar" ? "Too similar" : "Unclear";
                     return `<tr>
-                        <td>${dateStr}</td>
-                        <td style="max-width: 200px;">${r.strategy_a}</td>
-                        <td style="max-width: 200px;">${r.strategy_b}</td>
-                        <td>${reason}</td>
-                        <td>${r.level}</td>
-                        <td>${r.user_role}</td>
+                        <td data-label="Date">${dateStr}</td>
+                        <td data-label="Strategy A">${r.strategy_a}</td>
+                        <td data-label="Strategy B">${r.strategy_b}</td>
+                        <td data-label="Reason">${reason}</td>
+                        <td data-label="Level">${r.level}</td>
+                        <td data-label="User Role">${r.user_role}</td>
                     </tr>`;
-                }).join('')}
+                  })
+                  .join("")}
             </tbody>
         </table>`;
+  }
+
+  // ── Participants ──
+  async function loadParticipants() {
+    const res = await api("/api/admin/participants");
+    document.getElementById("pTotal").textContent = res.total || 0;
+    document.getElementById("pProvider").textContent =
+      res.by_role?.["Provider"] || 0;
+    document.getElementById("pScientist").textContent =
+      res.by_role?.["Implementation Scientist"] || 0;
+    document.getElementById("pPatient").textContent =
+      res.by_role?.["Patient/Family"] || 0;
+    document.getElementById("pPolicy").textContent =
+      res.by_role?.["Policy/Advocacy"] || 0;
+
+    const container = document.getElementById("participantTableContainer");
+    if (!res.participants || !res.participants.length) {
+      container.innerHTML =
+        '<div class="empty-state">No participants yet.</div>';
+      return;
     }
 
-    // ── Participants ──
-    async function loadParticipants() {
-        const res = await api('/api/admin/participants');
-        document.getElementById('pTotal').textContent = res.total || 0;
-        document.getElementById('pProvider').textContent = res.by_role?.['Provider'] || 0;
-        document.getElementById('pScientist').textContent = res.by_role?.['Implementation Scientist'] || 0;
-        document.getElementById('pPatient').textContent = res.by_role?.['Patient/Family'] || 0;
-        document.getElementById('pPolicy').textContent = res.by_role?.['Policy/Advocacy'] || 0;
-
-        const container = document.getElementById('participantTableContainer');
-        if (!res.participants || !res.participants.length) {
-            container.innerHTML = '<div class="empty-state">No participants yet.</div>';
-            return;
-        }
-
-        container.innerHTML = `
-        <table class="participant-table">
+    container.innerHTML = `
+        <table class="participant-table admin-table admin-table--cards">
             <thead>
-                <tr><th>Session ID</th><th>Role</th><th>Date</th><th>Duration</th><th>Votes</th><th>Ideas</th><th>Levels</th></tr>
+                <tr><th>Session ID</th><th>Role</th><th>Date</th><th>Duration</th><th>Votes</th><th>Ideas</th><th>Can't decide</th><th>Levels</th></tr>
             </thead>
             <tbody>
-                ${res.participants.map(p => {
+                ${res.participants
+                  .map((p) => {
                     const date = new Date(p.started_at);
-                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
-                                   date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                    const dur = p.duration_seconds ? formatDuration(p.duration_seconds) : '—';
-                    const levels = p.levels_interacted.join(', ') || '—';
+                    const dateStr =
+                      date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      }) +
+                      " " +
+                      date.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+                    const dur = p.duration_seconds
+                      ? formatDuration(p.duration_seconds)
+                      : "—";
+                    const levels =
+                      p.levels_interacted && p.levels_interacted.length
+                        ? p.levels_interacted.join(", ")
+                        : "—";
+                    const cantDec =
+                      typeof p.cant_decides === "number" ? p.cant_decides : "—";
                     return `<tr>
-                        <td style="font-family: monospace; font-size: 0.8rem;">${p.id}</td>
-                        <td>${p.role}</td>
-                        <td>${dateStr}</td>
-                        <td>${dur}</td>
-                        <td>${p.votes}</td>
-                        <td>${p.ideas_submitted}</td>
-                        <td style="font-size: 0.8rem;">${levels}</td>
+                        <td data-label="Session ID" style="font-family: monospace; font-size: 0.8rem;">${p.id}</td>
+                        <td data-label="Role">${p.role}</td>
+                        <td data-label="Date">${dateStr}</td>
+                        <td data-label="Duration">${dur}</td>
+                        <td data-label="Votes">${p.votes}</td>
+                        <td data-label="Ideas">${p.ideas_submitted}</td>
+                        <td data-label="Can't decide">${cantDec}</td>
+                        <td data-label="Levels" style="font-size: 0.8rem;">${levels}</td>
                     </tr>`;
-                }).join('')}
+                  })
+                  .join("")}
             </tbody>
         </table>`;
+  }
+
+  function formatDuration(seconds) {
+    if (seconds < 60) return Math.round(seconds) + "s";
+    if (seconds < 3600) return Math.round(seconds / 60) + "m";
+    return (
+      Math.round(seconds / 3600) +
+      "h " +
+      Math.round((seconds % 3600) / 60) +
+      "m"
+    );
+  }
+
+  // ── CSV Download ──
+  function downloadCSV(type) {
+    showToast("CSV download will be available in the full release");
+  }
+
+  function openQuickGuideAdmin() {
+    closeNavbarMenu();
+    showToast("Quick guide available on the voting page");
+  }
+
+  // ── Strategy Library ──
+  let strategyPage = 1;
+  let searchTimeout = null;
+
+  function searchStrategiesDebounced() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => loadStrategies(1), 300);
+  }
+
+  async function loadStrategies(page) {
+    strategyPage = page;
+    const search = document.getElementById("strategySearch").value.trim();
+    const res = await api(
+      `/api/admin/strategies?page=${page}&per_page=20&search=${encodeURIComponent(search)}`,
+    );
+
+    document.getElementById("strategyCountLabel").textContent =
+      `${res.total} strategies total`;
+
+    const container = document.getElementById("strategyListContainer");
+    if (!res.strategies || !res.strategies.length) {
+      container.innerHTML =
+        '<div class="empty-state">No strategies found.</div>';
+      document.getElementById("strategyPagination").innerHTML = "";
+      return;
     }
 
-    function formatDuration(seconds) {
-        if (seconds < 60) return Math.round(seconds) + 's';
-        if (seconds < 3600) return Math.round(seconds / 60) + 'm';
-        return Math.round(seconds / 3600) + 'h ' + Math.round((seconds % 3600) / 60) + 'm';
-    }
-
-    // ── CSV Download ──
-    function downloadCSV(type) {
-        showToast('CSV download will be available in the full release');
-    }
-
-    function openQuickGuideAdmin() {
-        showToast('Quick guide available on the voting page');
-    }
-
-    // ── Strategy Library ──
-    let strategyPage = 1;
-    let searchTimeout = null;
-
-    function searchStrategiesDebounced() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => loadStrategies(1), 300);
-    }
-
-    async function loadStrategies(page) {
-        strategyPage = page;
-        const search = document.getElementById('strategySearch').value.trim();
-        const res = await api(`/api/admin/strategies?page=${page}&per_page=20&search=${encodeURIComponent(search)}`);
-
-        document.getElementById('strategyCountLabel').textContent = `${res.total} strategies total`;
-
-        const container = document.getElementById('strategyListContainer');
-        if (!res.strategies || !res.strategies.length) {
-            container.innerHTML = '<div class="empty-state">No strategies found.</div>';
-            document.getElementById('strategyPagination').innerHTML = '';
-            return;
-        }
-
-        container.innerHTML = `
-        <div style="overflow-x: auto;">
-        <table class="cd-table">
+    container.innerHTML = `
+        <div class="admin-table-wrapper" style="overflow-x: auto;">
+        <table class="cd-table admin-table admin-table--cards">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -807,136 +2116,166 @@
                 </tr>
             </thead>
             <tbody>
-                ${res.strategies.map(s => {
-                    const activeIcon = s.is_active ? '<span style="color: var(--color-success);">✓</span>' : '<span style="color: var(--color-danger);">✗</span>';
-                    const sourceTag = s.is_user_submitted ? '<span style="font-size:0.72rem; background:#e0e7ff; color:#3730a3; padding:0.1rem 0.4rem; border-radius:3px;">User</span>' : '<span style="font-size:0.72rem; background:#f3f4f6; color:#6b7280; padding:0.1rem 0.4rem; border-radius:3px;">CSV</span>';
+                ${res.strategies
+                  .map((s) => {
+                    const activeIcon = s.is_active
+                      ? '<span style="color: var(--color-success);">✓</span>'
+                      : '<span style="color: var(--color-danger);">✗</span>';
+                    const sourceTag = s.is_user_submitted
+                      ? '<span style="font-size:0.72rem; background:#e0e7ff; color:#3730a3; padding:0.1rem 0.4rem; border-radius:3px;">User</span>'
+                      : '<span style="font-size:0.72rem; background:#f3f4f6; color:#6b7280; padding:0.1rem 0.4rem; border-radius:3px;">CSV</span>';
                     return `<tr>
-                        <td style="font-size: 0.8rem; color: var(--color-muted);">${s.id}</td>
-                        <td style="max-width: 300px; font-size: 0.88rem;">${s.choice}</td>
-                        <td style="font-size: 0.82rem;">${s.level}</td>
-                        <td style="font-size: 0.82rem; max-width: 160px;">${s.primary_eric || '—'}</td>
-                        <td style="text-align: center;">${activeIcon}</td>
-                        <td>${sourceTag}</td>
-                        <td><button class="action-btn action-btn--edit" onclick="openStrategyEdit(${s.id})">Edit</button></td>
+                        <td data-label="ID" style="font-size: 0.8rem; color: var(--color-muted);">${s.id}</td>
+                        <td data-label="Strategy" style="font-size: 0.88rem;">${s.choice}</td>
+                        <td data-label="Level(s)" style="font-size: 0.82rem;">${s.level}</td>
+                        <td data-label="Primary ERIC" style="font-size: 0.82rem;">${s.primary_eric || "—"}</td>
+                        <td data-label="Active" style="text-align: left;">${activeIcon}</td>
+                        <td data-label="Source">${sourceTag}</td>
+                        <td class="admin-table__cell--actions" data-label="Actions"><button type="button" class="action-btn action-btn--edit" onclick="openStrategyEdit(${s.id})">Edit</button></td>
                     </tr>`;
-                }).join('')}
+                  })
+                  .join("")}
             </tbody>
         </table>
         </div>`;
 
-        // Pagination
-        const totalPages = Math.ceil(res.total / res.per_page);
-        if (totalPages > 1) {
-            let html = '';
-            for (let p = 1; p <= Math.min(totalPages, 10); p++) {
-                const active = p === page ? 'background: var(--color-accent); color: var(--color-primary-dark);' : '';
-                html += `<button onclick="loadStrategies(${p})" style="padding: 0.3rem 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer; margin: 0 0.15rem; font-size: 0.82rem; ${active}">${p}</button>`;
-            }
-            if (totalPages > 10) html += '<span style="color: var(--color-muted);"> ... ' + totalPages + ' pages</span>';
-            document.getElementById('strategyPagination').innerHTML = html;
-        } else {
-            document.getElementById('strategyPagination').innerHTML = '';
-        }
+    // Pagination
+    const totalPages = Math.ceil(res.total / res.per_page);
+    if (totalPages > 1) {
+      let html = "";
+      for (let p = 1; p <= Math.min(totalPages, 10); p++) {
+        const active =
+          p === page
+            ? "background: var(--color-accent); color: var(--color-primary-dark);"
+            : "";
+        html += `<button onclick="loadStrategies(${p})" style="padding: 0.3rem 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer; margin: 0 0.15rem; font-size: 0.82rem; ${active}">${p}</button>`;
+      }
+      if (totalPages > 10)
+        html +=
+          '<span style="color: var(--color-muted);"> ... ' +
+          totalPages +
+          " pages</span>";
+      document.getElementById("strategyPagination").innerHTML = html;
+    } else {
+      document.getElementById("strategyPagination").innerHTML = "";
     }
+  }
 
-    async function openStrategyEdit(id) {
-        const res = await api(`/api/admin/strategies/${id}`);
-        if (res.error) { showToast(res.error, 'error'); return; }
-        document.getElementById('seId').value = res.id;
-        document.getElementById('seChoice').value = res.choice || '';
-        document.getElementById('seLevel').value = res.level || '';
-        document.getElementById('seActorLevel').value = res.actor_level || '';
-        document.getElementById('seRecipientLevel').value = res.recipient_level || '';
-        document.getElementById('seEric').value = res.primary_eric || '';
-        document.getElementById('seSecondaryEric').value = res.secondary_eric || '';
-        document.getElementById('seEvidence').value = res.evidence_based_practice || '';
-        document.getElementById('seSource').value = res.source || '';
-        document.getElementById('seOtherSource').value = res.other_source || '';
-        document.getElementById('seHelpText').value = res.help_text || '';
-        document.getElementById('seActive').checked = res.is_active;
-        document.getElementById('strategyEditOverlay').classList.add('show');
+  async function openStrategyEdit(id) {
+    const res = await api(`/api/admin/strategies/${id}`);
+    if (res.error) {
+      showToast(res.error, "error");
+      return;
     }
+    document.getElementById("seId").value = res.id;
+    document.getElementById("seChoice").value = res.choice || "";
+    document.getElementById("seLevel").value = res.level || "";
+    document.getElementById("seActorLevel").value = res.actor_level || "";
+    document.getElementById("seRecipientLevel").value =
+      res.recipient_level || "";
+    document.getElementById("seEric").value = res.primary_eric || "";
+    document.getElementById("seSecondaryEric").value = res.secondary_eric || "";
+    document.getElementById("seEvidence").value =
+      res.evidence_based_practice || "";
+    document.getElementById("seSource").value = res.source || "";
+    document.getElementById("seOtherSource").value = res.other_source || "";
+    document.getElementById("seHelpText").value = res.help_text || "";
+    document.getElementById("seActive").checked = res.is_active;
+    document.getElementById("strategyEditOverlay").classList.add("show");
+  }
 
-    function closeStrategyEdit() {
-        document.getElementById('strategyEditOverlay').classList.remove('show');
-    }
+  function closeStrategyEdit() {
+    document.getElementById("strategyEditOverlay").classList.remove("show");
+  }
 
-    document.getElementById('strategyEditOverlay').addEventListener('click', function(e) {
-        if (e.target === this) closeStrategyEdit();
+  document
+    .getElementById("strategyEditOverlay")
+    .addEventListener("click", function (e) {
+      if (e.target === this) closeStrategyEdit();
     });
 
-    async function saveStrategyEdit() {
-        const id = document.getElementById('seId').value;
-        const res = await fetch(`/api/admin/strategies/${id}`, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                choice: document.getElementById('seChoice').value,
-                level: document.getElementById('seLevel').value,
-                actor_level: document.getElementById('seActorLevel').value,
-                recipient_level: document.getElementById('seRecipientLevel').value,
-                primary_eric: document.getElementById('seEric').value,
-                secondary_eric: document.getElementById('seSecondaryEric').value,
-                evidence_based_practice: document.getElementById('seEvidence').value,
-                source: document.getElementById('seSource').value,
-                other_source: document.getElementById('seOtherSource').value,
-                help_text: document.getElementById('seHelpText').value,
-                is_active: document.getElementById('seActive').checked,
-            })
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast('Strategy updated');
-            closeStrategyEdit();
-            loadStrategies(strategyPage);
-        } else {
-            showToast(data.error || 'Update failed', 'error');
-        }
+  async function saveStrategyEdit() {
+    const id = document.getElementById("seId").value;
+    const res = await fetch(`/api/admin/strategies/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        choice: document.getElementById("seChoice").value,
+        level: document.getElementById("seLevel").value,
+        actor_level: document.getElementById("seActorLevel").value,
+        recipient_level: document.getElementById("seRecipientLevel").value,
+        primary_eric: document.getElementById("seEric").value,
+        secondary_eric: document.getElementById("seSecondaryEric").value,
+        evidence_based_practice: document.getElementById("seEvidence").value,
+        source: document.getElementById("seSource").value,
+        other_source: document.getElementById("seOtherSource").value,
+        help_text: document.getElementById("seHelpText").value,
+        is_active: document.getElementById("seActive").checked,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast("Strategy updated");
+      closeStrategyEdit();
+      loadStrategies(strategyPage);
+    } else {
+      showToast(data.error || "Update failed", "error");
+    }
+  }
+
+  async function deleteStrategy() {
+    const id = document.getElementById("seId").value;
+    if (
+      !confirm(
+        "Are you sure you want to permanently delete this strategy? This only works if it has no votes, logs, or references.",
+      )
+    )
+      return;
+    const res = await fetch(`/api/admin/strategies/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast("Strategy deleted");
+      closeStrategyEdit();
+      loadStrategies(strategyPage);
+    } else {
+      showToast(data.error || "Cannot delete", "error");
+    }
+  }
+
+  // ── Algorithm Logs ──
+  let algoLogPage = 1;
+
+  async function loadAlgoLogs(page) {
+    algoLogPage = page;
+    const res = await api(`/api/admin/algorithm-logs?page=${page}&per_page=30`);
+
+    if (res.summary) {
+      document.getElementById("alTotal").textContent =
+        res.summary.total_selections || 0;
+      document.getElementById("alColdStarts").textContent =
+        res.summary.cold_starts || 0;
+      document.getElementById("alVotes").textContent = res.summary.votes || 0;
+      document.getElementById("alCantDecide").textContent =
+        res.summary.cant_decides || 0;
+      document.getElementById("alAbandoned").textContent =
+        res.summary.abandoned || 0;
     }
 
-    async function deleteStrategy() {
-        const id = document.getElementById('seId').value;
-        if (!confirm('Are you sure you want to permanently delete this strategy? This only works if it has no votes, logs, or references.')) return;
-        const res = await fetch(`/api/admin/strategies/${id}`, {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'}
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast('Strategy deleted');
-            closeStrategyEdit();
-            loadStrategies(strategyPage);
-        } else {
-            showToast(data.error || 'Cannot delete', 'error');
-        }
+    const container = document.getElementById("algoLogTableContainer");
+
+    if (!res.records || !res.records.length) {
+      container.innerHTML =
+        '<div class="empty-state">No algorithm logs recorded yet. Logs are generated in production mode.</div>';
+      document.getElementById("algoLogPagination").innerHTML = "";
+      return;
     }
 
-    // ── Algorithm Logs ──
-    let algoLogPage = 1;
-
-    async function loadAlgoLogs(page) {
-        algoLogPage = page;
-        const res = await api(`/api/admin/algorithm-logs?page=${page}&per_page=30`);
-
-        if (res.summary) {
-            document.getElementById('alTotal').textContent = res.summary.total_selections || 0;
-            document.getElementById('alColdStarts').textContent = res.summary.cold_starts || 0;
-            document.getElementById('alVotes').textContent = res.summary.votes || 0;
-            document.getElementById('alCantDecide').textContent = res.summary.cant_decides || 0;
-            document.getElementById('alAbandoned').textContent = res.summary.abandoned || 0;
-        }
-
-        const container = document.getElementById('algoLogTableContainer');
-
-        if (!res.records || !res.records.length) {
-            container.innerHTML = '<div class="empty-state">No algorithm logs recorded yet. Logs are generated in production mode.</div>';
-            document.getElementById('algoLogPagination').innerHTML = '';
-            return;
-        }
-
-        container.innerHTML = `
-        <div style="overflow-x: auto;">
-        <table class="cd-table">
+    container.innerHTML = `
+        <div class="admin-table-wrapper" style="overflow-x: auto;">
+        <table class="cd-table admin-table admin-table--cards">
             <thead>
                 <tr>
                     <th>Time</th>
@@ -955,62 +2294,155 @@
                 </tr>
             </thead>
             <tbody>
-                ${res.records.map(r => {
+                ${res.records
+                  .map((r) => {
                     const date = new Date(r.timestamp);
-                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
-                                   date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    const outcomeColor = r.outcome === 'vote' ? 'var(--color-success)' :
-                                        r.outcome === 'cant_decide' ? 'var(--color-accent)' : 'var(--color-muted)';
+                    const dateStr =
+                      date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      }) +
+                      " " +
+                      date.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      });
+                    const outcomeColor =
+                      r.outcome === "vote"
+                        ? "var(--color-success)"
+                        : r.outcome === "cant_decide"
+                          ? "var(--color-accent)"
+                          : "var(--color-muted)";
                     return `<tr>
-                        <td style="white-space: nowrap; font-size: 0.78rem;">${dateStr}</td>
-                        <td style="font-family: monospace; font-size: 0.72rem;">${r.session_id || '—'}</td>
-                        <td>${r.level}</td>
-                        <td style="max-width: 180px; font-size: 0.82rem;" title="${r.focal}">${r.focal}</td>
-                        <td>${r.focal_prob != null ? r.focal_prob.toFixed(4) : '—'}</td>
-                        <td style="max-width: 180px; font-size: 0.82rem;" title="${r.opponent}">${r.opponent}</td>
-                        <td>${r.strength_diff != null ? r.strength_diff.toFixed(4) : '—'}</td>
-                        <td style="font-size: 0.78rem;">${r.proxy || '—'}</td>
-                        <td>${r.was_cold_start ? '✓' : ''}</td>
-                        <td>${r.num_comparisons != null ? r.num_comparisons : '—'}</td>
-                        <td>${r.map_converged != null ? (r.map_converged ? '✓' : '✗') : '—'}</td>
-                        <td style="color: ${outcomeColor}; font-weight: 600;">${r.outcome}</td>
-                        <td style="max-width: 160px; font-size: 0.82rem;" title="${r.winner}">${r.winner}</td>
+                        <td data-label="Time" style="white-space: normal; font-size: 0.78rem;">${dateStr}</td>
+                        <td data-label="Session ID" style="font-family: monospace; font-size: 0.72rem;">${r.session_id || "—"}</td>
+                        <td data-label="Level">${r.level}</td>
+                        <td data-label="Focal Strategy" style="font-size: 0.82rem;" title="${String(r.focal || "").replace(/"/g, "&quot;")}">${r.focal}</td>
+                        <td data-label="P(focal)">${r.focal_prob != null ? r.focal_prob.toFixed(4) : "—"}</td>
+                        <td data-label="Opponent" style="font-size: 0.82rem;" title="${String(r.opponent || "").replace(/"/g, "&quot;")}">${r.opponent}</td>
+                        <td data-label="Δ Strength">${r.strength_diff != null ? r.strength_diff.toFixed(4) : "—"}</td>
+                        <td data-label="Proxy" style="font-size: 0.78rem;">${r.proxy || "—"}</td>
+                        <td data-label="Cold start">${r.was_cold_start ? "✓" : "—"}</td>
+                        <td data-label="# Comparisons">${r.num_comparisons != null ? r.num_comparisons : "—"}</td>
+                        <td data-label="MAP converged">${r.map_converged != null ? (r.map_converged ? "✓" : "✗") : "—"}</td>
+                        <td data-label="Outcome" style="color: ${outcomeColor}; font-weight: 600;">${r.outcome}</td>
+                        <td data-label="Winner" style="font-size: 0.82rem;" title="${String(r.winner || "").replace(/"/g, "&quot;")}">${r.winner}</td>
                     </tr>`;
-                }).join('')}
+                  })
+                  .join("")}
             </tbody>
         </table>
         </div>`;
 
-        // Pagination
-        const totalPages = Math.ceil(res.total / res.per_page);
-        if (totalPages > 1) {
-            let paginationHtml = '';
-            for (let p = 1; p <= Math.min(totalPages, 10); p++) {
-                const active = p === page ? 'background: var(--color-accent); color: var(--color-primary-dark);' : '';
-                paginationHtml += `<button onclick="loadAlgoLogs(${p})" style="padding: 0.3rem 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer; margin: 0 0.15rem; font-size: 0.82rem; ${active}">${p}</button>`;
-            }
-            if (totalPages > 10) paginationHtml += '<span style="color: var(--color-muted);"> ... ' + totalPages + ' pages</span>';
-            document.getElementById('algoLogPagination').innerHTML = paginationHtml;
-        } else {
-            document.getElementById('algoLogPagination').innerHTML = '';
-        }
+    // Pagination
+    const totalPages = Math.ceil(res.total / res.per_page);
+    if (totalPages > 1) {
+      let paginationHtml = "";
+      for (let p = 1; p <= Math.min(totalPages, 10); p++) {
+        const active =
+          p === page
+            ? "background: var(--color-accent); color: var(--color-primary-dark);"
+            : "";
+        paginationHtml += `<button onclick="loadAlgoLogs(${p})" style="padding: 0.3rem 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer; margin: 0 0.15rem; font-size: 0.82rem; ${active}">${p}</button>`;
+      }
+      if (totalPages > 10)
+        paginationHtml +=
+          '<span style="color: var(--color-muted);"> ... ' +
+          totalPages +
+          " pages</span>";
+      document.getElementById("algoLogPagination").innerHTML = paginationHtml;
+    } else {
+      document.getElementById("algoLogPagination").innerHTML = "";
     }
+  }
 
-    async function exportAlgoLogs() {
-        try {
-            const res = await fetch('/api/admin/algorithm-logs/export');
-            const data = await res.json();
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'algorithm_logs_' + new Date().toISOString().slice(0, 10) + '.json';
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast('Algorithm logs exported');
-        } catch (e) {
-            showToast('Export failed', 'error');
-        }
+  async function exportAlgoLogs() {
+    try {
+      const res = await fetch("/api/admin/algorithm-logs/export");
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        "algorithm_logs_" + new Date().toISOString().slice(0, 10) + ".json";
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Algorithm logs exported");
+    } catch (e) {
+      showToast("Export failed", "error");
     }
+  }
+
+  // ── Quick Guide (voting page Help video) ──
+  async function loadQuickGuideSettings() {
+    try {
+      const res = await api("/api/admin/quick-guide");
+      if (res.error) return;
+      document.getElementById("qgTitle").value = res.video_title || "";
+      document.getElementById("qgUrl").value = res.video_url || "";
+      const status = document.getElementById("qgUploadStatus");
+      const clearBtn = document.getElementById("qgClearUploadBtn");
+      if (res.has_upload) {
+        status.textContent =
+          "Uploaded file is active: " + (res.upload_filename || "—");
+        clearBtn.style.display = "inline-flex";
+      } else {
+        status.textContent =
+          "No MP4 uploaded (link only, or placeholder on the survey).";
+        clearBtn.style.display = "none";
+      }
+    } catch (e) {
+      showToast("Could not load Quick Guide settings", "error");
+    }
+  }
+
+  async function saveQuickGuideSettings() {
+    const res = await api("/api/admin/quick-guide", {
+      video_url: document.getElementById("qgUrl").value,
+      video_title: document.getElementById("qgTitle").value,
+    });
+    if (res.success) showToast("Quick guide settings saved");
+    else showToast(res.error || "Save failed", "error");
+  }
+
+  async function uploadQuickGuideVideo() {
+    const input = document.getElementById("qgFile");
+    if (!input.files || !input.files[0]) {
+      showToast("Choose an MP4 file first", "error");
+      return;
+    }
+    const fd = new FormData();
+    fd.append("file", input.files[0]);
+    try {
+      const res = await fetch("/api/admin/quick-guide/upload", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("Video uploaded");
+        input.value = "";
+        loadQuickGuideSettings();
+      } else {
+        showToast(data.error || "Upload failed", "error");
+      }
+    } catch (e) {
+      showToast("Upload failed", "error");
+    }
+  }
+
+  async function clearQuickGuideUpload() {
+    const res = await api("/api/admin/quick-guide", { clear_upload: true });
+    if (res.success) {
+      showToast("Uploaded video removed");
+      loadQuickGuideSettings();
+    } else {
+      showToast(res.error || "Could not remove file", "error");
+    }
+  }
 </script>
 {% endblock %}

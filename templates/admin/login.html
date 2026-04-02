@@ -44,6 +44,11 @@
         border-color: var(--color-accent);
         box-shadow: 0 0 0 3px rgba(201,162,39,0.1);
     }
+
+    @media (max-width: 480px) {
+        .admin-login--gate { padding: 1rem; align-items: flex-start; padding-top: max(2rem, env(safe-area-inset-top)); }
+        .admin-login--gate .admin-login__card { padding: 1.5rem; width: 100%; max-width: none; }
+    }
 </style>
 {% endblock %}
 

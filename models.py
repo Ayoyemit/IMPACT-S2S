@@ -176,3 +176,13 @@ class AlgorithmLog(db.Model):
     focal = db.relationship('Strategy', foreign_keys=[focal_id])
     opponent = db.relationship('Strategy', foreign_keys=[opponent_id])
 
+
+class AppSettings(db.Model):
+    """Singleton app-wide settings (row id=1)."""
+    __tablename__ = 'app_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    quick_guide_video_url = db.Column(db.Text, nullable=True)
+    quick_guide_video_filename = db.Column(db.String(255), nullable=True)
+    quick_guide_video_title = db.Column(db.String(500), nullable=True)
+

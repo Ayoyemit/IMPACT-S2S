@@ -1,13 +1,17 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from config import Config
 from models import (db, Strategy, Session as UserSession, Comparison, CantDecide,
-                    SubmittedIdea, ExposureCount, AlgorithmLog)
+                    SubmittedIdea, ExposureCount, AlgorithmLog, AppSettings)
 from seed_data import seed_example_data
 from load_csv import load_csv_strategies
 from algorithm import AdaptivePairSelector, get_bt_score
 from datetime import datetime, timezone
+from urllib.parse import urlparse, parse_qs
 import random
 import json
+import os
+import re
+import uuid
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -40,6 +44,9 @@ LEVEL_COLORS = {
 # ─── Initialize DB ─────────────────────────────────────────────────────────────
 with app.app_context():
     db.create_all()
+    if AppSettings.query.get(1) is None:
+        db.session.add(AppSettings(id=1))
+        db.session.commit()
     if SURVEY_MODE == 'production':
         csv_path = app.config.get('STRATEGIES_CSV', 'data/Strategies.csv')
         load_csv_strategies(csv_path)
@@ -50,6 +57,90 @@ with app.app_context():
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────────
+
+def _quick_guide_upload_dir():
+    return os.path.join(app.root_path, 'static', 'uploads', 'quick_guide')
+
+
+def _delete_quick_guide_file(filename):
+    if not filename:
+        return
+    safe = os.path.basename(filename)
+    path = os.path.join(_quick_guide_upload_dir(), safe)
+    if os.path.isfile(path):
+        os.remove(path)
+
+
+def _youtube_video_id(url):
+    if not url:
+        return None
+    parsed = urlparse(url.strip())
+    host = (parsed.netloc or '').lower()
+    path = parsed.path or ''
+    if 'youtu.be' in host:
+        vid = path.lstrip('/').split('/')[0]
+        return vid.split('?')[0] if vid else None
+    if 'youtube.com' in host or 'youtube-nocookie.com' in host:
+        if path.startswith('/embed/'):
+            return path.split('/embed/')[-1].split('/')[0]
+        if path.startswith('/shorts/'):
+            return path.split('/shorts/')[-1].split('/')[0]
+        qs = parse_qs(parsed.query)
+        if 'v' in qs:
+            return qs['v'][0]
+    return None
+
+
+def _vimeo_video_id(url):
+    if not url:
+        return None
+    m = re.search(r'vimeo\.com/(?:video/)?(\d+)', url)
+    return m.group(1) if m else None
+
+
+def build_quick_guide_context(settings):
+    """Build template context for the Quick Guide video area."""
+    default_title = 'How to use the project app — A walkthrough'
+    title = (settings.quick_guide_video_title or '').strip() or default_title
+
+    if settings.quick_guide_video_filename:
+        fn = os.path.basename(settings.quick_guide_video_filename)
+        if fn and '..' not in fn:
+            vsrc = url_for('static', filename=f'uploads/quick_guide/{fn}')
+            return {
+                'type': 'video',
+                'video_src': vsrc,
+                'embed_src': None,
+                'title': title,
+            }
+
+    raw_url = (settings.quick_guide_video_url or '').strip()
+    if not raw_url:
+        return {'type': 'placeholder', 'video_src': None, 'embed_src': None, 'title': title}
+
+    yt = _youtube_video_id(raw_url)
+    if yt:
+        return {
+            'type': 'embed',
+            'video_src': None,
+            'embed_src': f'https://www.youtube-nocookie.com/embed/{yt}',
+            'title': title,
+        }
+    vm = _vimeo_video_id(raw_url)
+    if vm:
+        return {
+            'type': 'embed',
+            'video_src': None,
+            'embed_src': f'https://player.vimeo.com/video/{vm}',
+            'title': title,
+        }
+    return {
+        'type': 'video',
+        'video_src': raw_url,
+        'embed_src': None,
+        'title': title,
+    }
+
 
 def get_session_level_counts(sid):
     counts = {}
@@ -123,8 +214,13 @@ def survey():
     if not sid or not role:
         return redirect(url_for('index'))
     level_order = ROLE_LEVEL_ORDER.get(role, ['Provider', 'Organization', 'System', 'Client'])
+    app_settings = AppSettings.query.get(1)
+    quick_guide = build_quick_guide_context(app_settings) if app_settings else build_quick_guide_context(
+        AppSettings()
+    )
     return render_template('survey.html', role=role, level_order=level_order,
-                           level_colors=LEVEL_COLORS, session_id=sid)
+                           level_colors=LEVEL_COLORS, session_id=sid,
+                           quick_guide=quick_guide)
 
 
 @app.route('/admin')
@@ -738,6 +834,65 @@ def export_algorithm_logs():
 def admin_logout():
     session.pop('is_admin', None)
     return jsonify({'success': True, 'redirect': '/admin'})
+
+
+@app.route('/api/admin/quick-guide', methods=['GET', 'POST'])
+def admin_quick_guide():
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    s = AppSettings.query.get(1)
+    if not s:
+        return jsonify({'error': 'Settings not initialized'}), 500
+
+    if request.method == 'GET':
+        return jsonify({
+            'video_url': s.quick_guide_video_url or '',
+            'video_title': s.quick_guide_video_title or '',
+            'has_upload': bool(s.quick_guide_video_filename),
+            'upload_filename': s.quick_guide_video_filename or '',
+        })
+
+    data = request.json or {}
+    if 'video_url' in data:
+        s.quick_guide_video_url = (data.get('video_url') or '').strip() or None
+    if 'video_title' in data:
+        t = (data.get('video_title') or '').strip()
+        s.quick_guide_video_title = t or None
+    if data.get('clear_upload'):
+        _delete_quick_guide_file(s.quick_guide_video_filename)
+        s.quick_guide_video_filename = None
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/quick-guide/upload', methods=['POST'])
+def admin_quick_guide_upload():
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    f = request.files['file']
+    if not f or not f.filename:
+        return jsonify({'error': 'No file uploaded'}), 400
+    if os.path.splitext(f.filename)[1].lower() != '.mp4':
+        return jsonify({'error': 'Only .mp4 files are allowed'}), 400
+
+    os.makedirs(_quick_guide_upload_dir(), exist_ok=True)
+    new_name = f'{uuid.uuid4().hex}.mp4'
+    path = os.path.join(_quick_guide_upload_dir(), new_name)
+    f.save(path)
+    max_bytes = app.config.get('QUICK_GUIDE_MAX_UPLOAD', 100 * 1024 * 1024)
+    if os.path.getsize(path) > max_bytes:
+        os.remove(path)
+        return jsonify({'error': f'File too large (max {max_bytes // (1024 * 1024)} MB)'}), 400
+
+    s = AppSettings.query.get(1)
+    if not s:
+        return jsonify({'error': 'Settings not initialized'}), 500
+    _delete_quick_guide_file(s.quick_guide_video_filename)
+    s.quick_guide_video_filename = new_name
+    db.session.commit()
+    return jsonify({'success': True, 'upload_filename': new_name})
 
 
 # ─── Run ────────────────────────────────────────────────────────────────────────

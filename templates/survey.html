@@ -8,14 +8,24 @@
         <button type="button" class="navbar__back" aria-label="Go back" onclick="window.location.href='/'">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <span class="navbar__title">Smoking Cessation: Vote for Best Strategies</span>
+        <span class="navbar__title-wrap"><span class="navbar__title">Smoking Cessation: Vote for Best Strategies</span></span>
     </div>
-    <div class="navbar__right">
+    <div class="navbar__right navbar__right--desktop">
         <a href="{{ url_for('index') }}" class="nav-btn nav-btn--ghost navbar__home">Home</a>
-        <button class="nav-btn nav-btn--vote" id="voteNavBtn">Vote</button>
-        <button class="nav-btn nav-btn--ghost" onclick="openQuickGuide()">Help</button>
+        <button type="button" class="nav-btn nav-btn--vote" id="voteNavBtn">Vote</button>
+        <button type="button" class="nav-btn nav-btn--ghost" onclick="openQuickGuide()">Help</button>
     </div>
+    <button type="button" class="navbar__menu-toggle" id="navbarMenuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="navbarMobileMenu">
+        <svg class="navbar__menu-icon--open" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <svg class="navbar__menu-icon--close" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
 </nav>
+<div class="navbar-mobile-backdrop" id="navbarMobileBackdrop" aria-hidden="true"></div>
+<div class="navbar-mobile-menu" id="navbarMobileMenu" role="dialog" aria-label="Site menu">
+    <a href="{{ url_for('index') }}" class="navbar-mobile-menu__link" onclick="closeNavbarMenu()">Home</a>
+    <button type="button" class="navbar-mobile-menu__btn navbar-mobile-menu__btn--vote" id="voteNavBtnMobile">Vote</button>
+    <button type="button" class="navbar-mobile-menu__btn navbar-mobile-menu__btn--ghost" onclick="openQuickGuide()">Help</button>
+</div>
 
 <!-- ═══ SURVEY LAYOUT ═══ -->
 <div class="survey-layout">
@@ -24,6 +34,7 @@
     <aside class="sidebar">
         <div class="sidebar__title">Implementation Levels</div>
 
+        <div class="sidebar__levels">
         {% for level in level_order %}
         <button class="level-btn level-btn--{{ level|lower|replace('/', '') }} {% if loop.first %}active{% endif %}"
                 data-level="{{ level }}"
@@ -34,6 +45,7 @@
             </span>
         </button>
         {% endfor %}
+        </div>
 
         <!-- Progress bar -->
         <div class="progress-section">
@@ -124,14 +136,27 @@
         </div>
         <div class="quickguide__body">
 
-            <!-- Video placeholder -->
-            <div class="quickguide__video">
-                <div class="quickguide__video-play">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--color-primary-dark)"><polygon points="8,5 19,12 8,19"/></svg>
+            <div>
+                <div class="quickguide__video quickguide__video--{{ quick_guide.type }}">
+                    {% if quick_guide.type == 'embed' and quick_guide.embed_src %}
+                    <iframe class="quickguide__video-frame" src="{{ quick_guide.embed_src }}"
+                        title="{{ quick_guide.title }}"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowfullscreen loading="lazy"></iframe>
+                    {% elif quick_guide.type == 'video' and quick_guide.video_src %}
+                    <video class="quickguide__video-el" src="{{ quick_guide.video_src }}" controls playsinline preload="metadata"></video>
+                    {% else %}
+                    <div class="quickguide__video-play">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--color-primary-dark)"><polygon points="8,5 19,12 8,19"/></svg>
+                    </div>
+                    <div class="quickguide__video-caption">
+                        <div class="quickguide__video-title">{{ quick_guide.title }}</div>
+                    </div>
+                    {% endif %}
                 </div>
-                <div style="position: absolute; bottom: 1rem; left: 0; right: 0;">
-                    <div class="quickguide__video-title">How to use the project app — A walkthrough</div>
-                </div>
+                {% if quick_guide.type == 'embed' or quick_guide.type == 'video' %}
+                <p class="quickguide__video-heading">{{ quick_guide.title }}</p>
+                {% endif %}
             </div>
 
             <p class="quickguide__intro">
@@ -265,8 +290,51 @@
         'Client': 'progress-bar-fill--client',
     };
 
+    function closeNavbarMenu() {
+        const menu = document.getElementById('navbarMobileMenu');
+        const backdrop = document.getElementById('navbarMobileBackdrop');
+        const toggle = document.getElementById('navbarMenuToggle');
+        if (!menu || !backdrop || !toggle) return;
+        menu.classList.remove('show');
+        backdrop.classList.remove('show');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', 'Open menu');
+        document.body.classList.remove('navbar-menu-open');
+    }
+
+    function toggleNavbarMenu() {
+        const menu = document.getElementById('navbarMobileMenu');
+        const backdrop = document.getElementById('navbarMobileBackdrop');
+        const toggle = document.getElementById('navbarMenuToggle');
+        if (!menu || !backdrop || !toggle) return;
+        const open = !menu.classList.contains('show');
+        menu.classList.toggle('show', open);
+        backdrop.classList.toggle('show', open);
+        toggle.setAttribute('aria-expanded', open);
+        toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        document.body.classList.toggle('navbar-menu-open', open);
+    }
+
+    function scrollToVoteSection() {
+        const el = document.getElementById('pairContainer');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        closeNavbarMenu();
+    }
+
     // ── Init ──
     document.addEventListener('DOMContentLoaded', async () => {
+        const toggle = document.getElementById('navbarMenuToggle');
+        const backdrop = document.getElementById('navbarMobileBackdrop');
+        if (toggle) toggle.addEventListener('click', toggleNavbarMenu);
+        if (backdrop) backdrop.addEventListener('click', closeNavbarMenu);
+        const voteBtn = document.getElementById('voteNavBtn');
+        const voteMobile = document.getElementById('voteNavBtnMobile');
+        if (voteBtn) voteBtn.addEventListener('click', scrollToVoteSection);
+        if (voteMobile) voteMobile.addEventListener('click', scrollToVoteSection);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeNavbarMenu();
+        });
+
         // Load initial counts
         const res = await api('/api/level-counts');
         levelCounts = res || {};
@@ -501,6 +569,7 @@
 
     // ── Quick Guide ──
     function openQuickGuide() {
+        closeNavbarMenu();
         document.getElementById('quickGuide').classList.add('show');
     }
 
