@@ -17,9 +17,6 @@ instance/
 .env
 .env.*
 
-# Uploaded Quick Guide videos (keep folder via .gitkeep)
-static/uploads/quick_guide/*.mp4
-
 # OS / editor
 .DS_Store
 .idea/

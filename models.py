@@ -183,6 +183,5 @@ class AppSettings(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     quick_guide_video_url = db.Column(db.Text, nullable=True)
-    quick_guide_video_filename = db.Column(db.String(255), nullable=True)
     quick_guide_video_title = db.Column(db.String(500), nullable=True)
 

@@ -29,6 +29,3 @@ class Config:
     # Which proxy to use: 'exposure' (Proxy A) or 'top_heavy' (Proxy B)
     BT_PROXY = os.environ.get('BT_PROXY', 'top_heavy')
 
-    # Quick Guide: max MP4 upload size (bytes); also sets Flask MAX_CONTENT_LENGTH for uploads
-    QUICK_GUIDE_MAX_UPLOAD = int(os.environ.get('QUICK_GUIDE_MAX_UPLOAD', str(100 * 1024 * 1024)))
-    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', str(100 * 1024 * 1024)))

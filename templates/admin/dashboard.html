@@ -1256,7 +1256,7 @@ endblock %} {% block head %}
     ></div>
   </div>
 
-  <!-- Quick Guide video -->
+  <!-- Quick Guide video (URL + title only; host video on YouTube, Vimeo, or a direct link) -->
   <div class="admin-panel" id="panel-quickguide">
     <p
       style="
@@ -1266,9 +1266,9 @@ endblock %} {% block head %}
         max-width: 42rem;
       "
     >
-      Controls the video at the top of the <strong>Help</strong> panel on the
-      voting page. Upload an MP4 here, or paste a YouTube, Vimeo, or direct link
-      to a video file. If both are set, the uploaded file is shown first.
+      Sets the video at the top of the <strong>Help</strong> panel on the voting
+      page. Paste a YouTube or Vimeo page URL, or a direct link to an MP4
+      (hosted elsewhere).
     </p>
     <div class="review-card" style="max-width: 560px">
       <div class="edit-field" style="margin-bottom: 1rem">
@@ -1305,44 +1305,7 @@ endblock %} {% block head %}
         class="download-btn"
         onclick="saveQuickGuideSettings()"
       >
-        Save title &amp; link
-      </button>
-
-      <hr
-        style="
-          border: none;
-          border-top: 1px solid var(--color-border);
-          margin: 1.25rem 0;
-        "
-      />
-
-      <div class="edit-field" style="margin-bottom: 0.75rem">
-        <label for="qgFile">Upload MP4</label>
-        <input type="file" id="qgFile" accept=".mp4,video/mp4" />
-      </div>
-      <p
-        id="qgUploadStatus"
-        style="
-          font-size: 0.85rem;
-          color: var(--color-muted);
-          margin-bottom: 0.75rem;
-        "
-      ></p>
-      <button
-        type="button"
-        class="download-btn"
-        onclick="uploadQuickGuideVideo()"
-      >
-        Upload video file
-      </button>
-      <button
-        type="button"
-        class="download-btn"
-        id="qgClearUploadBtn"
-        style="display: none; margin-left: 0.5rem"
-        onclick="clearQuickGuideUpload()"
-      >
-        Remove uploaded file
+        Save
       </button>
     </div>
   </div>
@@ -2384,17 +2347,6 @@ endblock %} {% block head %}
       if (res.error) return;
       document.getElementById("qgTitle").value = res.video_title || "";
       document.getElementById("qgUrl").value = res.video_url || "";
-      const status = document.getElementById("qgUploadStatus");
-      const clearBtn = document.getElementById("qgClearUploadBtn");
-      if (res.has_upload) {
-        status.textContent =
-          "Uploaded file is active: " + (res.upload_filename || "—");
-        clearBtn.style.display = "inline-flex";
-      } else {
-        status.textContent =
-          "No MP4 uploaded (link only, or placeholder on the survey).";
-        clearBtn.style.display = "none";
-      }
     } catch (e) {
       showToast("Could not load Quick Guide settings", "error");
     }
@@ -2407,42 +2359,6 @@ endblock %} {% block head %}
     });
     if (res.success) showToast("Quick guide settings saved");
     else showToast(res.error || "Save failed", "error");
-  }
-
-  async function uploadQuickGuideVideo() {
-    const input = document.getElementById("qgFile");
-    if (!input.files || !input.files[0]) {
-      showToast("Choose an MP4 file first", "error");
-      return;
-    }
-    const fd = new FormData();
-    fd.append("file", input.files[0]);
-    try {
-      const res = await fetch("/api/admin/quick-guide/upload", {
-        method: "POST",
-        body: fd,
-      });
-      const data = await res.json();
-      if (data.success) {
-        showToast("Video uploaded");
-        input.value = "";
-        loadQuickGuideSettings();
-      } else {
-        showToast(data.error || "Upload failed", "error");
-      }
-    } catch (e) {
-      showToast("Upload failed", "error");
-    }
-  }
-
-  async function clearQuickGuideUpload() {
-    const res = await api("/api/admin/quick-guide", { clear_upload: true });
-    if (res.success) {
-      showToast("Uploaded video removed");
-      loadQuickGuideSettings();
-    } else {
-      showToast(res.error || "Could not remove file", "error");
-    }
   }
 </script>
 {% endblock %}

@@ -7,11 +7,10 @@ from load_csv import load_csv_strategies
 from algorithm import AdaptivePairSelector, get_bt_score
 from datetime import datetime, timezone
 from urllib.parse import urlparse, parse_qs
+from sqlalchemy import inspect, text
 import random
 import json
-import os
 import re
-import uuid
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -41,9 +40,38 @@ LEVEL_COLORS = {
 }
 
 
+def migrate_app_settings_schema():
+    """Align app_settings with models: drop columns removed from AppSettings."""
+    try:
+        inspector = inspect(db.engine)
+        if 'app_settings' not in inspector.get_table_names():
+            return
+    except Exception as exc:
+        print(f'[IMPACT S2S] app_settings schema inspect skipped: {exc}')
+        return
+
+    col_names = {c['name'] for c in inspector.get_columns('app_settings')}
+    if 'quick_guide_video_filename' not in col_names:
+        return
+
+    dialect = db.engine.dialect.name
+    if dialect == 'postgresql':
+        stmt = text('ALTER TABLE app_settings DROP COLUMN IF EXISTS quick_guide_video_filename')
+    else:
+        stmt = text('ALTER TABLE app_settings DROP COLUMN quick_guide_video_filename')
+
+    try:
+        with db.engine.begin() as conn:
+            conn.execute(stmt)
+        print('[IMPACT S2S] app_settings: dropped deprecated column quick_guide_video_filename')
+    except Exception as exc:
+        print(f'[IMPACT S2S] app_settings schema cleanup skipped (e.g. SQLite < 3.35): {exc}')
+
+
 # ─── Initialize DB ─────────────────────────────────────────────────────────────
 with app.app_context():
     db.create_all()
+    migrate_app_settings_schema()
     if AppSettings.query.get(1) is None:
         db.session.add(AppSettings(id=1))
         db.session.commit()
@@ -57,19 +85,6 @@ with app.app_context():
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────────
-
-def _quick_guide_upload_dir():
-    return os.path.join(app.root_path, 'static', 'uploads', 'quick_guide')
-
-
-def _delete_quick_guide_file(filename):
-    if not filename:
-        return
-    safe = os.path.basename(filename)
-    path = os.path.join(_quick_guide_upload_dir(), safe)
-    if os.path.isfile(path):
-        os.remove(path)
-
 
 def _youtube_video_id(url):
     if not url:
@@ -102,17 +117,6 @@ def build_quick_guide_context(settings):
     """Build template context for the Quick Guide video area."""
     default_title = 'How to use the project app — A walkthrough'
     title = (settings.quick_guide_video_title or '').strip() or default_title
-
-    if settings.quick_guide_video_filename:
-        fn = os.path.basename(settings.quick_guide_video_filename)
-        if fn and '..' not in fn:
-            vsrc = url_for('static', filename=f'uploads/quick_guide/{fn}')
-            return {
-                'type': 'video',
-                'video_src': vsrc,
-                'embed_src': None,
-                'title': title,
-            }
 
     raw_url = (settings.quick_guide_video_url or '').strip()
     if not raw_url:
@@ -848,8 +852,6 @@ def admin_quick_guide():
         return jsonify({
             'video_url': s.quick_guide_video_url or '',
             'video_title': s.quick_guide_video_title or '',
-            'has_upload': bool(s.quick_guide_video_filename),
-            'upload_filename': s.quick_guide_video_filename or '',
         })
 
     data = request.json or {}
@@ -858,41 +860,8 @@ def admin_quick_guide():
     if 'video_title' in data:
         t = (data.get('video_title') or '').strip()
         s.quick_guide_video_title = t or None
-    if data.get('clear_upload'):
-        _delete_quick_guide_file(s.quick_guide_video_filename)
-        s.quick_guide_video_filename = None
     db.session.commit()
     return jsonify({'success': True})
-
-
-@app.route('/api/admin/quick-guide/upload', methods=['POST'])
-def admin_quick_guide_upload():
-    if not session.get('is_admin'):
-        return jsonify({'error': 'Unauthorized'}), 401
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    f = request.files['file']
-    if not f or not f.filename:
-        return jsonify({'error': 'No file uploaded'}), 400
-    if os.path.splitext(f.filename)[1].lower() != '.mp4':
-        return jsonify({'error': 'Only .mp4 files are allowed'}), 400
-
-    os.makedirs(_quick_guide_upload_dir(), exist_ok=True)
-    new_name = f'{uuid.uuid4().hex}.mp4'
-    path = os.path.join(_quick_guide_upload_dir(), new_name)
-    f.save(path)
-    max_bytes = app.config.get('QUICK_GUIDE_MAX_UPLOAD', 100 * 1024 * 1024)
-    if os.path.getsize(path) > max_bytes:
-        os.remove(path)
-        return jsonify({'error': f'File too large (max {max_bytes // (1024 * 1024)} MB)'}), 400
-
-    s = AppSettings.query.get(1)
-    if not s:
-        return jsonify({'error': 'Settings not initialized'}), 500
-    _delete_quick_guide_file(s.quick_guide_video_filename)
-    s.quick_guide_video_filename = new_name
-    db.session.commit()
-    return jsonify({'success': True, 'upload_filename': new_name})
 
 
 # ─── Run ────────────────────────────────────────────────────────────────────────
