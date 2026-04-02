@@ -82,6 +82,7 @@ with app.app_context():
     else:
         seed_example_data()
         print(f"[IMPACT S2S] Running in EXAMPLE mode (random pair selection)")
+    print(f'[IMPACT S2S] Database backend: {db.engine.dialect.name}')
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -135,12 +136,19 @@ def _vimeo_video_id(url):
     return m.group(1) if m else None
 
 
+def _strip_invisible_chars(s):
+    """Remove zero-width / BOM characters that break URL parsing when pasted."""
+    if not s:
+        return s
+    return re.sub(r'[\u200b\u200c\u200d\u200e\u200f\ufeff]', '', s)
+
+
 def build_quick_guide_context(settings):
     """Build template context for the Quick Guide video area."""
     default_title = 'How to use the project app — A walkthrough'
     title = (settings.quick_guide_video_title or '').strip() or default_title
 
-    raw_url = (settings.quick_guide_video_url or '').strip()
+    raw_url = _strip_invisible_chars((settings.quick_guide_video_url or '').strip())
     if not raw_url:
         return {'type': 'placeholder', 'video_src': None, 'embed_src': None, 'title': title}
 
@@ -235,6 +243,13 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/quick-guide')
+def public_quick_guide():
+    """Public JSON for Quick Guide (verify deploy / DB without logging in)."""
+    s = AppSettings.query.get(1)
+    return jsonify(build_quick_guide_context(s if s else AppSettings()))
+
+
 @app.route('/survey')
 def survey():
     sid = session.get('session_id')
@@ -246,9 +261,12 @@ def survey():
     quick_guide = build_quick_guide_context(app_settings) if app_settings else build_quick_guide_context(
         AppSettings()
     )
-    return render_template('survey.html', role=role, level_order=level_order,
-                           level_colors=LEVEL_COLORS, session_id=sid,
-                           quick_guide=quick_guide)
+    resp = app.make_response(render_template('survey.html', role=role, level_order=level_order,
+                                            level_colors=LEVEL_COLORS, session_id=sid,
+                                            quick_guide=quick_guide))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 
 @app.route('/admin')
