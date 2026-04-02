@@ -86,15 +86,28 @@ with app.app_context():
 
 # ─── Helpers ────────────────────────────────────────────────────────────────────
 
+def _normalize_http_url(url):
+    """Ensure urlparse sees a scheme (paste often omits https://)."""
+    u = (url or '').strip()
+    if not u:
+        return u
+    if not re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*:', u):
+        u = 'https://' + u
+    return u
+
+
 def _youtube_video_id(url):
     if not url:
         return None
-    parsed = urlparse(url.strip())
+    u = _normalize_http_url(url.strip())
+    parsed = urlparse(u)
     host = (parsed.netloc or '').lower()
     path = parsed.path or ''
     if 'youtu.be' in host:
         vid = path.lstrip('/').split('/')[0]
-        return vid.split('?')[0] if vid else None
+        vid = vid.split('?')[0] if vid else None
+        if vid:
+            return vid
     if 'youtube.com' in host or 'youtube-nocookie.com' in host:
         if path.startswith('/embed/'):
             return path.split('/embed/')[-1].split('/')[0]
@@ -103,13 +116,22 @@ def _youtube_video_id(url):
         qs = parse_qs(parsed.query)
         if 'v' in qs:
             return qs['v'][0]
+    # Fallback: recover ID from messy pastes (extra params, redirects, etc.)
+    m = re.search(
+        r'(?:youtube\.com/embed/|youtube-nocookie\.com/embed/|youtu\.be/|youtube\.com/shorts/)'
+        r'([a-zA-Z0-9_-]{6,})|[?&]v=([a-zA-Z0-9_-]{6,})',
+        u,
+    )
+    if m:
+        return m.group(1) or m.group(2)
     return None
 
 
 def _vimeo_video_id(url):
     if not url:
         return None
-    m = re.search(r'vimeo\.com/(?:video/)?(\d+)', url)
+    u = _normalize_http_url(url.strip())
+    m = re.search(r'vimeo\.com/(?:video/)?(\d+)', u)
     return m.group(1) if m else None
 
 
@@ -121,6 +143,8 @@ def build_quick_guide_context(settings):
     raw_url = (settings.quick_guide_video_url or '').strip()
     if not raw_url:
         return {'type': 'placeholder', 'video_src': None, 'embed_src': None, 'title': title}
+
+    raw_url = _normalize_http_url(raw_url)
 
     yt = _youtube_video_id(raw_url)
     if yt:

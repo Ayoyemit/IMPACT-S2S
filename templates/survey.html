@@ -142,7 +142,7 @@
                     <iframe class="quickguide__video-frame" src="{{ quick_guide.embed_src }}"
                         title="{{ quick_guide.title }}"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowfullscreen loading="lazy"></iframe>
+                        allowfullscreen></iframe>
                     {% elif quick_guide.type == 'video' and quick_guide.video_src %}
                     <video class="quickguide__video-el" src="{{ quick_guide.video_src }}" controls playsinline preload="metadata"></video>
                     {% else %}
