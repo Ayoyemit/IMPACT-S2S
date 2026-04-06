@@ -229,31 +229,28 @@ body {
   cursor: not-allowed;
 }
 
-/* Scroll indicator */
+/* Scroll indicator — in document flow below CTA (avoids overlap with START SURVEY on short viewports) */
 .scroll-indicator {
-  position: absolute;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
+  margin-top: 1.25rem;
+  padding-top: 0.35rem;
   text-align: center;
   color: rgba(255, 255, 255, 0.6);
   font-size: 0.85rem;
-  animation: bounce 2s infinite;
+  animation: scrollHintBounce 2s ease-in-out infinite;
 }
 
 .scroll-indicator svg {
   display: block;
-  margin: 0.5rem auto 0;
+  margin: 0.45rem auto 0;
 }
 
-@keyframes bounce {
+@keyframes scrollHintBounce {
   0%,
   100% {
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
   50% {
-    transform: translateX(-50%) translateY(10px);
+    transform: translateY(8px);
   }
 }
 
