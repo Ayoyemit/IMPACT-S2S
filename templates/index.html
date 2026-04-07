@@ -127,6 +127,8 @@
     </div>
 </div>
 
+{% include 'partials/quick_guide.html' %}
+
 {% endblock %}
 
 {% block scripts %}
@@ -167,5 +169,44 @@
     document.getElementById('consentModal').addEventListener('click', function(e) {
         if (e.target === this) closeConsentModal();
     });
+
+    // ── Quick Guide ──
+    function openQuickGuide() {
+        document.getElementById('quickGuide').classList.add('show');
+    }
+
+    function closeQuickGuide() {
+        document.getElementById('quickGuide').classList.remove('show');
+    }
+
+    document.getElementById('quickGuide').addEventListener('click', function(e) {
+        if (e.target === this) closeQuickGuide();
+    });
+
+    function toggleAccordion(trigger) {
+        const body = trigger.nextElementSibling;
+        const isOpen = body.classList.contains('open');
+        document.querySelectorAll('.accordion-body').forEach(b => b.classList.remove('open'));
+        document.querySelectorAll('.accordion-trigger').forEach(t => t.classList.remove('open'));
+        if (!isOpen) {
+            body.classList.add('open');
+            trigger.classList.add('open');
+        }
+    }
+
+    const ONION_DESCS = {
+        system: 'This refers to strategies that would happen <strong>outside</strong> the walls of an individual healthcare organization or would have effects outside of one organization.',
+        organization: 'This refers to strategies that would happen <strong>inside</strong> the walls of an individual healthcare organization.',
+        provider: 'This refers to strategies that would involve or impact <strong>healthcare providers</strong>.',
+        patient: 'This refers to strategies that would involve or impact <strong>healthcare patients</strong>.',
+    };
+
+    function showOnionDesc(level) {
+        document.getElementById('onionDesc').innerHTML = ONION_DESCS[level] || '';
+    }
+
+    {% if auto_show_quick_guide %}
+    setTimeout(function() { openQuickGuide(); }, 2000);
+    {% endif %}
 </script>
 {% endblock %}

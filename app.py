@@ -240,7 +240,15 @@ def save_algorithm_log(log_data, session_id, level):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    app_settings = AppSettings.query.get(1)
+    quick_guide = build_quick_guide_context(app_settings) if app_settings else build_quick_guide_context(
+        AppSettings()
+    )
+    # Returning visitors with an active survey session see Help on /survey; skip auto-open on landing.
+    auto_show_quick_guide = not session.get('session_id')
+    return render_template(
+        'index.html', quick_guide=quick_guide, auto_show_quick_guide=auto_show_quick_guide
+    )
 
 
 @app.route('/api/quick-guide')

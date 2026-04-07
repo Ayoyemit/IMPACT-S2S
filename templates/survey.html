@@ -126,147 +126,7 @@
     </div>
 </div>
 
-
-<!-- ═══ QUICK GUIDE ═══ -->
-<div class="quickguide-backdrop" id="quickGuide">
-    <div class="quickguide">
-        <div class="quickguide__header">
-            <h2>Quick Guide</h2>
-            <button class="quickguide__close" onclick="closeQuickGuide()">✕</button>
-        </div>
-        <div class="quickguide__body">
-
-            <div>
-                <div class="quickguide__video quickguide__video--{{ quick_guide.type }}">
-                    {% if quick_guide.type == 'embed' and quick_guide.embed_src %}
-                    <iframe class="quickguide__video-frame" src="{{ quick_guide.embed_src }}"
-                        title="{{ quick_guide.title }}"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowfullscreen></iframe>
-                    {% elif quick_guide.type == 'video' and quick_guide.video_src %}
-                    <video class="quickguide__video-el" src="{{ quick_guide.video_src }}" controls playsinline preload="metadata"></video>
-                    {% else %}
-                    <div class="quickguide__video-play">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--color-primary-dark)"><polygon points="8,5 19,12 8,19"/></svg>
-                    </div>
-                    <div class="quickguide__video-caption">
-                        <div class="quickguide__video-title">{{ quick_guide.title }}</div>
-                    </div>
-                    {% endif %}
-                </div>
-                {% if quick_guide.type == 'embed' or quick_guide.type == 'video' %}
-                <p class="quickguide__video-heading">{{ quick_guide.title }}</p>
-                {% endif %}
-            </div>
-
-            <p class="quickguide__intro">
-                We want to identify the best ways to implement <strong>smoking cessation treatment</strong>
-                in community mental health settings. Understand the <strong>what, where, who, and how</strong>
-                of smoking cessation treatment by expanding the cards below.
-            </p>
-
-            <!-- WHAT accordion -->
-            <div class="accordion-item">
-                <button class="accordion-trigger" onclick="toggleAccordion(this)">
-                    WHAT
-                    <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                </button>
-                <div class="accordion-body">
-                    <div class="accordion-body__inner">
-                        <p style="margin-bottom: 0.75rem;"><strong>Smoking cessation treatment</strong> is an evidence-based practice that involves four activities. Hover over each to learn more.</p>
-                        <div class="hover-item">
-                            <div class="hover-item__title">📋 Assessing smoking status</div>
-                            <div class="hover-item__desc">This involves asking patients if they currently smoke tobacco and assessing the severity of tobacco dependence.</div>
-                        </div>
-                        <div class="hover-item">
-                            <div class="hover-item__title">💬 Assessing willingness to quit</div>
-                            <div class="hover-item__desc">This involves asking patients whether they are thinking about trying to quit smoking and if they have a time goal.</div>
-                        </div>
-                        <div class="hover-item">
-                            <div class="hover-item__title">🧠 Behavioral counseling</div>
-                            <div class="hover-item__desc">This involves counseling focused on smoking cessation, delivered by providers trained in motivational interviewing techniques.</div>
-                        </div>
-                        <div class="hover-item">
-                            <div class="hover-item__title">💊 Pharmacotherapy</div>
-                            <div class="hover-item__desc">This involves the prescription and management of smoking cessation medications and/or nicotine replacement therapy, managed by a prescribing physician or nurse.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- WHERE accordion -->
-            <div class="accordion-item">
-                <button class="accordion-trigger" onclick="toggleAccordion(this)">
-                    WHERE
-                    <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                </button>
-                <div class="accordion-body">
-                    <div class="accordion-body__inner">
-                        <strong>Community mental health centers</strong> provide a variety of services. These centers are generally where people with SMI receive most of their healthcare.
-                    </div>
-                </div>
-            </div>
-
-            <!-- WHO accordion -->
-            <div class="accordion-item">
-                <button class="accordion-trigger" onclick="toggleAccordion(this)">
-                    WHO
-                    <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                </button>
-                <div class="accordion-body">
-                    <div class="accordion-body__inner">
-                        <strong>Therapists, psychiatrists, and nurses</strong> at community mental health centers would become involved in the delivery of smoking cessation treatment, involving behavioral counseling and medication management.
-                    </div>
-                </div>
-            </div>
-
-            <!-- HOW accordion -->
-            <div class="accordion-item">
-                <button class="accordion-trigger" onclick="toggleAccordion(this)">
-                    HOW
-                    <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                </button>
-                <div class="accordion-body">
-                    <div class="accordion-body__inner">
-                        <p>You are picking between <em>implementation strategies</em>, which are actions or processes that support the delivery of a clinical practice.</p>
-
-                        <p class="levels-intro">We're going to ask about strategies at different levels: <strong>System, Organization, Provider, and Patient.</strong> Hover over or click each layer of the diagram to learn more.</p>
-
-                        <!-- Onion Diagram -->
-                        <div class="onion-container">
-                            <svg class="onion-svg" width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
-                                <!-- System (outer) -->
-                                <ellipse cx="120" cy="130" rx="115" ry="100" fill="rgba(167,243,208,0.35)" stroke="#a7f3d0" stroke-width="2"
-                                         style="cursor:pointer" onclick="showOnionDesc('system')" onmouseenter="showOnionDesc('system')"/>
-                                <text x="120" y="50" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="13" fill="#374151">System</text>
-
-                                <!-- Organization -->
-                                <ellipse cx="120" cy="140" rx="88" ry="76" fill="rgba(253,230,138,0.4)" stroke="#fde68a" stroke-width="2"
-                                         style="cursor:pointer" onclick="showOnionDesc('organization')" onmouseenter="showOnionDesc('organization')"/>
-                                <text x="120" y="82" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="13" fill="#374151">Organization</text>
-
-                                <!-- Provider -->
-                                <ellipse cx="120" cy="150" rx="62" ry="54" fill="rgba(244,114,182,0.3)" stroke="#f472b6" stroke-width="2"
-                                         style="cursor:pointer" onclick="showOnionDesc('provider')" onmouseenter="showOnionDesc('provider')"/>
-                                <text x="120" y="120" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="13" fill="#374151">Provider</text>
-
-                                <!-- Patient (inner) -->
-                                <ellipse cx="120" cy="160" rx="38" ry="32" fill="rgba(59,130,246,0.25)" stroke="#3b82f6" stroke-width="2"
-                                         style="cursor:pointer" onclick="showOnionDesc('patient')" onmouseenter="showOnionDesc('patient')"/>
-                                <text x="120" y="163" text-anchor="middle" font-family="DM Sans" font-weight="700" font-size="12" fill="#374151">Patient</text>
-                            </svg>
-
-                            <div class="onion-desc" id="onionDesc">
-                                Click or hover over a layer to learn more about each implementation level.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</div>
+{% include 'partials/quick_guide.html' %}
 
 {% endblock %}
 
@@ -280,7 +140,6 @@
     let currentAlgoLogId = null;
     let levelCounts = {};
     let celebratedLevels = new Set();
-    let showingQuickGuide = true;
 
     // Level color map for progress bar
     const LEVEL_FILL_CLASS = {
@@ -340,7 +199,6 @@
         levelCounts = res || {};
         updateProgress();
         loadPair();
-        openQuickGuide();
 
         // Heartbeat every 30s
         setInterval(() => api('/api/session-heartbeat', {}), 30000);
