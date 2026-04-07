@@ -246,9 +246,17 @@ def index():
     )
     # Returning visitors with an active survey session see Help on /survey; skip auto-open on landing.
     auto_show_quick_guide = not session.get('session_id')
-    return render_template(
-        'index.html', quick_guide=quick_guide, auto_show_quick_guide=auto_show_quick_guide
+    resp = app.make_response(
+        render_template(
+            'index.html', quick_guide=quick_guide, auto_show_quick_guide=auto_show_quick_guide
+        )
     )
+    # Match /survey: HTML is dynamic (session + quick guide). Without this, CDNs/proxies/browsers
+    # may serve stale markup so the landing quick-guide script never appears after deploy.
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Vary'] = 'Cookie'
+    return resp
 
 
 @app.route('/api/quick-guide')
