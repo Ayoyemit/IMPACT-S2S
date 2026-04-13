@@ -68,10 +68,41 @@ def migrate_app_settings_schema():
         print(f'[IMPACT S2S] app_settings schema cleanup skipped (e.g. SQLite < 3.35): {exc}')
 
 
+def migrate_admin_signoff_columns():
+    """Add last sign-off columns to strategies and submitted_ideas if missing."""
+    dialect = db.engine.dialect.name
+    ts_type = 'TIMESTAMP WITH TIME ZONE' if dialect == 'postgresql' else 'DATETIME'
+
+    def ensure_column(table, col_name, col_sql):
+        try:
+            inspector = inspect(db.engine)
+        except Exception:
+            return
+        if table not in inspector.get_table_names():
+            return
+        existing = {c['name'] for c in inspector.get_columns(table)}
+        if col_name in existing:
+            return
+        try:
+            with db.engine.begin() as conn:
+                conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {col_name} {col_sql}'))
+            print(f'[IMPACT S2S] Added column {table}.{col_name}')
+        except Exception as exc:
+            print(f'[IMPACT S2S] Could not add {table}.{col_name}: {exc}')
+
+    ensure_column('strategies', 'last_signoff_initials', 'VARCHAR(32)')
+    ensure_column('strategies', 'last_signoff_at', ts_type)
+    ensure_column('strategies', 'last_signoff_comment', 'TEXT')
+    ensure_column('submitted_ideas', 'last_signoff_initials', 'VARCHAR(32)')
+    ensure_column('submitted_ideas', 'last_signoff_at', ts_type)
+    ensure_column('submitted_ideas', 'last_signoff_comment', 'TEXT')
+
+
 # ─── Initialize DB ─────────────────────────────────────────────────────────────
 with app.app_context():
     db.create_all()
     migrate_app_settings_schema()
+    migrate_admin_signoff_columns()
     if AppSettings.query.get(1) is None:
         db.session.add(AppSettings(id=1))
         db.session.commit()
@@ -615,8 +646,9 @@ def admin_submitted_ideas():
         'total': SubmittedIdea.query.count(),
     }
 
-    return jsonify({
-        'ideas': [{
+    def _idea_dict(i):
+        dup = i.duplicate_of
+        return {
             'id': i.id, 'idea_text': i.idea_text, 'user_role': i.user_role,
             'status': i.status, 'assigned_level': i.assigned_level,
             'assigned_primary_eric': i.assigned_primary_eric,
@@ -625,7 +657,16 @@ def admin_submitted_ideas():
             'assigned_help_text': i.assigned_help_text,
             'created_at': i.created_at.isoformat(),
             'reviewed_at': i.reviewed_at.isoformat() if i.reviewed_at else None,
-        } for i in ideas],
+            'last_signoff_initials': i.last_signoff_initials,
+            'last_signoff_at': i.last_signoff_at.isoformat() if i.last_signoff_at else None,
+            'last_signoff_comment': i.last_signoff_comment,
+            'duplicate_of_id': i.duplicate_of_id,
+            'duplicate_of_choice': dup.choice if dup else None,
+            'duplicate_of_level': dup.level if dup else None,
+        }
+
+    return jsonify({
+        'ideas': [_idea_dict(i) for i in ideas],
         'counts': counts,
     })
 
@@ -635,19 +676,75 @@ def admin_review_idea():
     if not session.get('is_admin'):
         return jsonify({'error': 'Unauthorized'}), 401
 
-    data = request.json
+    data = request.json or {}
     idea = SubmittedIdea.query.get(data.get('idea_id'))
     if not idea:
         return jsonify({'error': 'Idea not found'}), 404
 
     action = data.get('action')
+    initials = (data.get('signoff_initials') or '').strip()
+    change_comment = (data.get('change_comment') or '').strip()
+    now = datetime.now(timezone.utc)
+
+    if action == 'pending':
+        if not initials:
+            return jsonify({'error': 'Initials are required', 'success': False}), 400
+        if not change_comment:
+            return jsonify({
+                'error': 'Please describe what you changed before saving.',
+                'success': False,
+            }), 400
+        raw_idea = (data.get('idea_text') or '').strip()
+        if not raw_idea:
+            return jsonify({'error': 'Strategy text cannot be empty', 'success': False}), 400
+        idea.idea_text = raw_idea
+        idea.assigned_level = data.get('level', idea.assigned_level)
+        idea.assigned_primary_eric = data.get('primary_eric', idea.assigned_primary_eric)
+        idea.assigned_secondary_eric = data.get('secondary_eric', idea.assigned_secondary_eric)
+        idea.assigned_evidence_based = data.get('evidence_based', idea.assigned_evidence_based)
+        idea.assigned_help_text = data.get('help_text', idea.assigned_help_text)
+        idea.last_signoff_initials = initials
+        idea.last_signoff_at = now
+        idea.last_signoff_comment = change_comment
+        db.session.commit()
+        return jsonify({'success': True})
+
+    if action not in ('approved', 'rejected', 'duplicate'):
+        return jsonify({'error': 'Invalid action', 'success': False}), 400
+
+    if not initials:
+        return jsonify({'error': 'Initials are required', 'success': False}), 400
+
+    duplicate_of_id = None
+    if action == 'duplicate':
+        if not change_comment:
+            return jsonify({
+                'error': 'A comment is required when marking as duplicate.',
+                'success': False,
+            }), 400
+        raw_dup = data.get('duplicate_of_id')
+        if raw_dup is None or raw_dup == '':
+            return jsonify({
+                'error': 'Please select which existing strategy this submission duplicates.',
+                'success': False,
+            }), 400
+        try:
+            duplicate_of_id = int(raw_dup)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Invalid duplicate strategy.', 'success': False}), 400
+        if not Strategy.query.get(duplicate_of_id):
+            return jsonify({'error': 'Selected strategy was not found.', 'success': False}), 400
+
     idea.status = action
-    idea.reviewed_at = datetime.now(timezone.utc)
+    idea.reviewed_at = now
     idea.assigned_level = data.get('level', idea.assigned_level)
     idea.assigned_primary_eric = data.get('primary_eric', idea.assigned_primary_eric)
     idea.assigned_secondary_eric = data.get('secondary_eric', idea.assigned_secondary_eric)
     idea.assigned_evidence_based = data.get('evidence_based', idea.assigned_evidence_based)
     idea.assigned_help_text = data.get('help_text', idea.assigned_help_text)
+    idea.last_signoff_initials = initials
+    idea.last_signoff_at = now
+    idea.last_signoff_comment = change_comment or None
 
     if action == 'approved' and idea.assigned_level:
         db.session.add(Strategy(
@@ -659,7 +756,7 @@ def admin_review_idea():
             is_active=True, is_user_submitted=True))
 
     if action == 'duplicate':
-        idea.duplicate_of_id = data.get('duplicate_of_id')
+        idea.duplicate_of_id = duplicate_of_id
 
     db.session.commit()
     return jsonify({'success': True})
@@ -747,6 +844,9 @@ def admin_strategies():
             'source': s.source, 'other_source': s.other_source,
             'help_text': s.help_text, 'is_active': s.is_active,
             'is_user_submitted': s.is_user_submitted,
+            'last_signoff_initials': s.last_signoff_initials,
+            'last_signoff_at': s.last_signoff_at.isoformat() if s.last_signoff_at else None,
+            'last_signoff_comment': s.last_signoff_comment,
         } for s in strategies],
         'total': total, 'page': page, 'per_page': per_page,
     })
@@ -766,6 +866,9 @@ def admin_get_strategy(strategy_id):
         'source': s.source, 'other_source': s.other_source,
         'help_text': s.help_text, 'is_active': s.is_active,
         'is_user_submitted': s.is_user_submitted,
+        'last_signoff_initials': s.last_signoff_initials,
+        'last_signoff_at': s.last_signoff_at.isoformat() if s.last_signoff_at else None,
+        'last_signoff_comment': s.last_signoff_comment,
     })
 
 
@@ -774,7 +877,16 @@ def admin_update_strategy(strategy_id):
     if not session.get('is_admin'):
         return jsonify({'error': 'Unauthorized'}), 401
     s = Strategy.query.get_or_404(strategy_id)
-    data = request.json
+    data = request.json or {}
+    initials = (data.get('signoff_initials') or '').strip()
+    change_comment = (data.get('change_comment') or '').strip()
+    if not initials:
+        return jsonify({'error': 'Initials are required', 'success': False}), 400
+    if not change_comment:
+        return jsonify({
+            'error': 'Please describe what you changed before saving.',
+            'success': False,
+        }), 400
 
     s.choice = data.get('choice', s.choice)
     s.level = data.get('level', s.level)
@@ -787,6 +899,9 @@ def admin_update_strategy(strategy_id):
     s.other_source = data.get('other_source', s.other_source)
     s.help_text = data.get('help_text', s.help_text)
     s.is_active = data.get('is_active', s.is_active)
+    s.last_signoff_initials = initials
+    s.last_signoff_at = datetime.now(timezone.utc)
+    s.last_signoff_comment = change_comment
 
     db.session.commit()
     return jsonify({'success': True})
@@ -925,4 +1040,4 @@ def admin_quick_guide():
 # ─── Run ────────────────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5000)

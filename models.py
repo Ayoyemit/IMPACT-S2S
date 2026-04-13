@@ -24,6 +24,10 @@ class Strategy(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     is_user_submitted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    # Last admin sign-off (Edit All Strategies); no history retained
+    last_signoff_initials = db.Column(db.String(32), nullable=True)
+    last_signoff_at = db.Column(db.DateTime, nullable=True)
+    last_signoff_comment = db.Column(db.Text, nullable=True)
 
     def get_levels(self):
         """Return list of levels this strategy belongs to."""
@@ -125,6 +129,10 @@ class SubmittedIdea(db.Model):
     duplicate_of_id = db.Column(db.Integer, db.ForeignKey('strategies.id'), nullable=True)
     reviewed_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    # Last admin sign-off (review decision or pending edit save); no history retained
+    last_signoff_initials = db.Column(db.String(32), nullable=True)
+    last_signoff_at = db.Column(db.DateTime, nullable=True)
+    last_signoff_comment = db.Column(db.Text, nullable=True)
 
     duplicate_of = db.relationship('Strategy', foreign_keys=[duplicate_of_id])
 

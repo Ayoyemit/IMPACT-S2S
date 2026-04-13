@@ -340,6 +340,89 @@ endblock %} {% block head %}
     flex-wrap: wrap;
   }
 
+  .dup-modal-card {
+    max-width: 640px;
+    width: 100%;
+    max-height: min(92vh, 720px);
+    display: flex;
+    flex-direction: column;
+  }
+  .dup-modal-sub {
+    font-size: 0.88rem;
+    color: var(--color-muted);
+    margin: 0 0 0.75rem;
+    line-height: 1.45;
+  }
+  .dup-modal-list {
+    flex: 1;
+    min-height: 140px;
+    max-height: min(38vh, 300px);
+    overflow: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-white);
+    margin-bottom: 0.65rem;
+  }
+  .dup-modal-row {
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    font-size: 0.84rem;
+    text-align: left;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: var(--font-body);
+    background: var(--color-white);
+    color: inherit;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
+  .dup-modal-row:last-child {
+    border-bottom: none;
+  }
+  .dup-modal-row:hover {
+    background: var(--color-surface);
+  }
+  .dup-modal-row.is-selected {
+    background: rgba(59, 130, 246, 0.14);
+    box-shadow: inset 3px 0 0 var(--color-accent);
+  }
+  .dup-modal-row__id {
+    font-size: 0.72rem;
+    color: var(--color-muted);
+    margin-bottom: 0.2rem;
+    font-weight: 600;
+  }
+
+  .review-card__duplicate-of {
+    font-size: 0.88rem;
+    margin: 0.75rem 0;
+    padding: 0.75rem 0.85rem;
+    background: var(--color-surface);
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    line-height: 1.45;
+  }
+  .review-card__duplicate-of-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+    margin-bottom: 0.4rem;
+  }
+  .review-card__duplicate-of-meta {
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    margin-bottom: 0.45rem;
+  }
+  .review-card__duplicate-of-text {
+    font-weight: 500;
+    font-size: 0.92rem;
+  }
+
   .action-btn {
     padding: 0.35rem 0.85rem;
     border: none;
@@ -1357,6 +1440,35 @@ endblock %} {% block head %}
         placeholder="Description shown to users"
       ></textarea>
     </div>
+    <p
+      id="editLastSignoff"
+      style="
+        display: none;
+        font-size: 0.82rem;
+        color: var(--color-muted);
+        margin: 0 0 0.75rem;
+        line-height: 1.4;
+      "
+    ></p>
+    <div class="edit-field">
+      <label for="editSignoffInitials">Your initials (required)</label>
+      <input
+        type="text"
+        id="editSignoffInitials"
+        maxlength="32"
+        class="rank-select"
+        style="width: 100%; padding: 0.5rem 0.75rem; box-sizing: border-box"
+        autocomplete="off"
+      />
+    </div>
+    <div class="edit-field">
+      <label for="editChangeComment">What you changed (required)</label>
+      <textarea
+        id="editChangeComment"
+        rows="2"
+        placeholder="Brief note on what you updated"
+      ></textarea>
+    </div>
     <div class="edit-actions">
       <button
         class="action-btn action-btn--duplicate"
@@ -1445,6 +1557,35 @@ endblock %} {% block head %}
         Active (appears in voting pairs)
       </label>
     </div>
+    <p
+      id="seLastSignoff"
+      style="
+        display: none;
+        font-size: 0.82rem;
+        color: var(--color-muted);
+        margin: 0 0 0.75rem;
+        line-height: 1.4;
+      "
+    ></p>
+    <div class="edit-field">
+      <label for="seSignoffInitials">Your initials (required)</label>
+      <input
+        type="text"
+        id="seSignoffInitials"
+        maxlength="32"
+        class="rank-select"
+        style="width: 100%; padding: 0.5rem 0.75rem; box-sizing: border-box"
+        autocomplete="off"
+      />
+    </div>
+    <div class="edit-field">
+      <label for="seChangeComment">What you changed (required)</label>
+      <textarea
+        id="seChangeComment"
+        rows="2"
+        placeholder="Brief note on what you updated"
+      ></textarea>
+    </div>
     <div class="edit-actions">
       <button
         type="button"
@@ -1471,6 +1612,95 @@ endblock %} {% block head %}
   </div>
 </div>
 
+<!-- Mark as duplicate: pick existing strategy + initials + comment -->
+<div class="edit-overlay" id="duplicateModalOverlay">
+  <div class="edit-card dup-modal-card">
+    <h3 style="margin-top: 0">Mark submission as duplicate</h3>
+    <p class="dup-modal-sub">
+      Select the existing strategy this submission duplicates. Your initials and a
+      short comment are required; the date is recorded automatically.
+    </p>
+    <input type="hidden" id="dupModalIdeaId" />
+    <p
+      id="dupModalSubmissionPreview"
+      style="
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin: 0 0 0.75rem;
+        line-height: 1.4;
+      "
+    ></p>
+    <div class="edit-field" style="margin-bottom: 0.5rem">
+      <label for="dupModalSearch">Search strategies</label>
+      <input
+        type="text"
+        id="dupModalSearch"
+        class="rank-select"
+        style="width: 100%; padding: 0.5rem 0.75rem; box-sizing: border-box"
+        placeholder="Type to filter by strategy text…"
+        autocomplete="off"
+      />
+    </div>
+    <div id="dupModalList" class="dup-modal-list">
+      <div
+        style="padding: 1rem; color: var(--color-muted); font-size: 0.85rem"
+      >
+        Loading strategies…
+      </div>
+    </div>
+    <div
+      id="dupModalPagination"
+      style="text-align: center; margin-bottom: 0.65rem; font-size: 0.82rem"
+    ></div>
+    <input type="hidden" id="dupModalSelectedId" value="" />
+    <p
+      id="dupModalSelectedLabel"
+      style="
+        display: none;
+        font-size: 0.82rem;
+        color: var(--color-success);
+        margin: 0 0 0.65rem;
+        font-weight: 600;
+      "
+    ></p>
+    <div class="edit-field">
+      <label for="dupModalInitials">Your initials (required)</label>
+      <input
+        type="text"
+        id="dupModalInitials"
+        maxlength="32"
+        class="rank-select"
+        style="width: 100%; padding: 0.5rem 0.75rem; box-sizing: border-box"
+        autocomplete="off"
+      />
+    </div>
+    <div class="edit-field">
+      <label for="dupModalComment">Comment (required)</label>
+      <textarea
+        id="dupModalComment"
+        rows="2"
+        placeholder="e.g. Same approach as strategy #12; submission wording only differs slightly."
+      ></textarea>
+    </div>
+    <div class="edit-actions" style="margin-top: auto; padding-top: 0.5rem">
+      <button
+        type="button"
+        class="action-btn action-btn--duplicate"
+        onclick="closeDuplicateModal()"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="action-btn action-btn--approve"
+        onclick="submitDuplicateModal()"
+      >
+        Mark as duplicate
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Fixed to viewport: avoids iOS/WebKit misplacing native <select> popovers -->
 <div
   id="subFilterSheetBackdrop"
@@ -1490,6 +1720,42 @@ endblock %} {% block head %}
 <script>
   let currentSubFilter = null;
   let allIdeas = [];
+  let duplicatePickerPage = 1;
+  let duplicatePickerSearchTimeout = null;
+  const DUPLICATE_PICKER_PER_PAGE = 40;
+
+  function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function formatAdminSignoffShort(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return (
+      d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }) +
+      " " +
+      d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+    );
+  }
+
+  /** Returns HTML (safe for innerHTML): initials, time, optional comment. */
+  function formatAdminSignoffLine(initials, iso, comment) {
+    if (!iso || !initials) return "";
+    const when = formatAdminSignoffShort(iso);
+    let line = `<strong>${escapeHtml(initials)}</strong> — ${escapeHtml(when)}`;
+    if (comment && String(comment).trim())
+      line += `<br/><span style="font-weight:400;">${escapeHtml(comment)}</span>`;
+    return line;
+  }
 
   function closeNavbarMenu() {
     const menu = document.getElementById("navbarMobileMenu");
@@ -1794,6 +2060,35 @@ endblock %} {% block head %}
         const levelBadge = idea.assigned_level
           ? `<span class="review-card__role" style="background: var(--level-${idea.assigned_level.split(",")[0].trim().toLowerCase()}-bg, var(--color-surface));">${idea.assigned_level}</span>`
           : "";
+        const signoffLine =
+          idea.last_signoff_at && idea.last_signoff_initials
+            ? `<div style="font-size:0.78rem; color: var(--color-muted); margin-top:0.35rem; line-height:1.35;">Last sign-off: ${formatAdminSignoffLine(
+                idea.last_signoff_initials,
+                idea.last_signoff_at,
+                idea.last_signoff_comment,
+              )}</div>`
+            : "";
+
+        const dupMeta =
+          idea.duplicate_of_id != null && idea.duplicate_of_id !== ""
+            ? `Strategy ID ${idea.duplicate_of_id}${
+                idea.duplicate_of_level
+                  ? ` · ${escapeHtml(idea.duplicate_of_level)}`
+                  : ""
+              }`
+            : "";
+        const duplicateOfBlock =
+          idea.status === "duplicate" && idea.duplicate_of_id
+            ? `<div class="review-card__duplicate-of">
+                <div class="review-card__duplicate-of-label">Duplicate of (library strategy)</div>
+                <div class="review-card__duplicate-of-meta">${dupMeta}</div>
+                <div class="review-card__duplicate-of-text">${
+                  idea.duplicate_of_choice
+                    ? escapeHtml(idea.duplicate_of_choice)
+                    : '<span style="color:var(--color-muted); font-weight:400;">This strategy is no longer in the library or could not be loaded.</span>'
+                }</div>
+              </div>`
+            : "";
 
         return `
             <div class="review-card">
@@ -1803,7 +2098,9 @@ endblock %} {% block head %}
                     ${levelBadge}
                     ${statusBadge}
                 </div>
+                ${signoffLine}
                 <div class="review-card__text">${idea.idea_text}</div>
+                ${duplicateOfBlock}
                 <div class="review-card__actions">
                     <select class="review-select" id="levelSelect-${idea.id}">
                         <option value="">Assign level...</option>
@@ -1812,10 +2109,10 @@ endblock %} {% block head %}
                         <option value="System" ${idea.assigned_level === "System" ? "selected" : ""}>System</option>
                         <option value="Client" ${idea.assigned_level === "Client" ? "selected" : ""}>Client</option>
                     </select>
-                    <button class="action-btn action-btn--edit" onclick="openEditModal(${idea.id}, '${escapeJS(idea.idea_text)}', '${idea.assigned_level || ""}', '${idea.assigned_primary_eric || ""}', '${idea.assigned_secondary_eric || ""}', '${idea.assigned_evidence_based || ""}', '${escapeJS(idea.assigned_help_text || "")}')">Edit</button>
+                    <button class="action-btn action-btn--edit" onclick="openEditModal(${idea.id}, '${escapeJS(idea.idea_text)}', '${idea.assigned_level || ""}', '${idea.assigned_primary_eric || ""}', '${idea.assigned_secondary_eric || ""}', '${idea.assigned_evidence_based || ""}', '${escapeJS(idea.assigned_help_text || "")}', '${idea.last_signoff_initials ? escapeJS(idea.last_signoff_initials) : ""}', '${idea.last_signoff_at || ""}', '${escapeJS(idea.last_signoff_comment || "")}')">Edit</button>
                     <button class="action-btn action-btn--approve" onclick="reviewAction(${idea.id}, 'approved')">Approve</button>
                     <button class="action-btn action-btn--reject" onclick="reviewAction(${idea.id}, 'rejected')">Reject</button>
-                    <button class="action-btn action-btn--duplicate" onclick="reviewAction(${idea.id}, 'duplicate')">Mark as Duplicate</button>
+                    <button class="action-btn action-btn--duplicate" onclick="openDuplicateModal(${idea.id})">Mark as Duplicate</button>
                 </div>
             </div>`;
       })
@@ -1827,6 +2124,146 @@ endblock %} {% block head %}
       .replace(/'/g, "\\'")
       .replace(/"/g, '\\"')
       .replace(/\n/g, "\\n");
+  }
+
+  function openDuplicateModal(ideaId) {
+    const idea = allIdeas.find((i) => i.id === ideaId);
+    if (!idea) {
+      showToast("Could not load this submission. Refresh and try again.", "error");
+      return;
+    }
+    document.getElementById("dupModalIdeaId").value = String(ideaId);
+    document.getElementById("dupModalSubmissionPreview").textContent = idea.idea_text;
+    document.getElementById("dupModalSearch").value = "";
+    document.getElementById("dupModalSelectedId").value = "";
+    const dupLbl = document.getElementById("dupModalSelectedLabel");
+    dupLbl.style.display = "none";
+    dupLbl.textContent = "";
+    document.getElementById("dupModalInitials").value = "";
+    document.getElementById("dupModalComment").value = "";
+    document.getElementById("duplicateModalOverlay").classList.add("show");
+    const ds = document.getElementById("dupModalSearch");
+    if (ds && !ds._dupSearchBound) {
+      ds._dupSearchBound = true;
+      ds.addEventListener("input", () => {
+        clearTimeout(duplicatePickerSearchTimeout);
+        duplicatePickerSearchTimeout = setTimeout(() => {
+          document.getElementById("dupModalSelectedId").value = "";
+          dupLbl.style.display = "none";
+          loadDuplicatePicker(1);
+        }, 320);
+      });
+    }
+    loadDuplicatePicker(1);
+  }
+
+  function closeDuplicateModal() {
+    document.getElementById("duplicateModalOverlay").classList.remove("show");
+  }
+
+  async function loadDuplicatePicker(page) {
+    duplicatePickerPage = page;
+    const search = document.getElementById("dupModalSearch").value.trim();
+    const res = await api(
+      `/api/admin/strategies?page=${page}&per_page=${DUPLICATE_PICKER_PER_PAGE}&search=${encodeURIComponent(search)}`,
+    );
+    const container = document.getElementById("dupModalList");
+    const pag = document.getElementById("dupModalPagination");
+    const selectedId = document.getElementById("dupModalSelectedId").value;
+
+    if (!res.strategies || !res.strategies.length) {
+      container.innerHTML =
+        '<div style="padding:1rem;color:var(--color-muted);font-size:0.85rem">No strategies match this search.</div>';
+      pag.innerHTML = res.total
+        ? ""
+        : '<span style="color:var(--color-muted);">No strategies in the library.</span>';
+      return;
+    }
+
+    container.innerHTML = res.strategies
+      .map((s) => {
+        const sel = String(s.id) === selectedId ? " is-selected" : "";
+        return `<button type="button" class="dup-modal-row${sel}" onclick="selectDuplicateStrategyRow(${s.id}, this)">
+          <div class="dup-modal-row__id">Strategy ID ${s.id}</div>
+          <div>${escapeHtml(s.choice)}</div>
+          <div style="font-size:0.78rem;color:var(--color-muted);margin-top:0.25rem">${escapeHtml(s.level || "—")}</div>
+        </button>`;
+      })
+      .join("");
+
+    const totalPages = Math.ceil(res.total / res.per_page);
+    if (totalPages > 1) {
+      let html = "";
+      for (let p = 1; p <= Math.min(totalPages, 15); p++) {
+        const active =
+          p === page
+            ? "background: var(--color-accent); color: var(--color-primary-dark);"
+            : "";
+        html += `<button type="button" onclick="loadDuplicatePicker(${p})" style="padding: 0.25rem 0.55rem; border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer; margin: 0 0.12rem; font-size: 0.78rem; ${active}">${p}</button>`;
+      }
+      if (totalPages > 15)
+        html += `<span style="color:var(--color-muted);"> … ${totalPages} pages</span>`;
+      pag.innerHTML = html;
+    } else {
+      pag.innerHTML =
+        '<span style="color:var(--color-muted);">' +
+        res.total +
+        " strategies</span>";
+    }
+  }
+
+  function selectDuplicateStrategyRow(strategyId, el) {
+    document.getElementById("dupModalSelectedId").value = String(strategyId);
+    document.querySelectorAll("#dupModalList .dup-modal-row").forEach((row) => {
+      row.classList.toggle("is-selected", row === el);
+    });
+    const label = document.getElementById("dupModalSelectedLabel");
+    label.style.display = "block";
+    label.textContent = "Selected: strategy ID " + strategyId;
+  }
+
+  async function submitDuplicateModal() {
+    const ideaId = parseInt(document.getElementById("dupModalIdeaId").value, 10);
+    const dupRaw = document.getElementById("dupModalSelectedId").value;
+    const signoff_initials = document
+      .getElementById("dupModalInitials")
+      .value.trim();
+    const change_comment = document
+      .getElementById("dupModalComment")
+      .value.trim();
+    const levelSelect = document.getElementById("levelSelect-" + ideaId);
+    const level = levelSelect ? levelSelect.value : "";
+
+    if (!dupRaw) {
+      showToast("Select which existing strategy this submission duplicates.", "error");
+      return;
+    }
+    if (!signoff_initials) {
+      showToast("Initials are required", "error");
+      return;
+    }
+    if (!change_comment) {
+      showToast("A comment is required when marking as duplicate.", "error");
+      return;
+    }
+
+    const res = await api("/api/admin/review-idea", {
+      idea_id: ideaId,
+      action: "duplicate",
+      duplicate_of_id: parseInt(dupRaw, 10),
+      level: level,
+      signoff_initials: signoff_initials,
+      change_comment: change_comment,
+    });
+    if (res.error) {
+      showToast(res.error, "error");
+      return;
+    }
+    if (res.success) {
+      showToast("Marked as duplicate");
+      closeDuplicateModal();
+      loadReview("all");
+    }
   }
 
   async function reviewAction(ideaId, action) {
@@ -1841,12 +2278,27 @@ endblock %} {% block head %}
       return;
     }
 
+    const initialsRaw = window.prompt(
+      "Enter your initials to record this action (date is saved automatically):",
+    );
+    if (initialsRaw === null) return;
+    const signoff_initials = initialsRaw.trim();
+    if (!signoff_initials) {
+      showToast("Initials are required", "error");
+      return;
+    }
+
     const res = await api("/api/admin/review-idea", {
       idea_id: ideaId,
       action: action,
       level: level,
+      signoff_initials: signoff_initials,
     });
 
+    if (res.error) {
+      showToast(res.error, "error");
+      return;
+    }
     if (res.success) {
       showToast(`Strategy ${action} successfully`);
       loadReview("all");
@@ -1862,6 +2314,9 @@ endblock %} {% block head %}
     secondaryEric,
     evidence,
     helpText,
+    lastSignoffInitials,
+    lastSignoffAt,
+    lastSignoffComment,
   ) {
     document.getElementById("editIdeaId").value = id;
     document.getElementById("editIdeaText").value = text;
@@ -1870,6 +2325,22 @@ endblock %} {% block head %}
     document.getElementById("editSecondaryEric").value = secondaryEric;
     document.getElementById("editEvidence").value = evidence;
     document.getElementById("editHelpText").value = helpText;
+    const hint = document.getElementById("editLastSignoff");
+    if (lastSignoffAt && lastSignoffInitials) {
+      hint.style.display = "block";
+      hint.innerHTML =
+        "Last sign-off: " +
+        formatAdminSignoffLine(
+          lastSignoffInitials,
+          lastSignoffAt,
+          lastSignoffComment,
+        );
+    } else {
+      hint.style.display = "none";
+      hint.innerHTML = "";
+    }
+    document.getElementById("editSignoffInitials").value = "";
+    document.getElementById("editChangeComment").value = "";
     document.getElementById("editOverlay").classList.add("show");
   }
 
@@ -1879,15 +2350,36 @@ endblock %} {% block head %}
 
   async function saveEdit() {
     const ideaId = document.getElementById("editIdeaId").value;
+    const signoff_initials = document
+      .getElementById("editSignoffInitials")
+      .value.trim();
+    const change_comment = document
+      .getElementById("editChangeComment")
+      .value.trim();
+    if (!signoff_initials) {
+      showToast("Initials are required", "error");
+      return;
+    }
+    if (!change_comment) {
+      showToast("Please describe what you changed before saving.", "error");
+      return;
+    }
     const res = await api("/api/admin/review-idea", {
       idea_id: parseInt(ideaId),
       action: "pending", // keep as pending, just update fields
+      idea_text: document.getElementById("editIdeaText").value,
       level: document.getElementById("editLevel").value,
       primary_eric: document.getElementById("editEric").value,
       secondary_eric: document.getElementById("editSecondaryEric").value,
       evidence_based: document.getElementById("editEvidence").value,
       help_text: document.getElementById("editHelpText").value,
+      signoff_initials: signoff_initials,
+      change_comment: change_comment,
     });
+    if (res.error) {
+      showToast(res.error, "error");
+      return;
+    }
     if (res.success) {
       showToast("Strategy details updated");
       closeEditModal();
@@ -1899,6 +2391,12 @@ endblock %} {% block head %}
     .getElementById("editOverlay")
     .addEventListener("click", function (e) {
       if (e.target === this) closeEditModal();
+    });
+
+  document
+    .getElementById("duplicateModalOverlay")
+    .addEventListener("click", function (e) {
+      if (e.target === this) closeDuplicateModal();
     });
 
   // ── Can't Decide ──
@@ -2075,6 +2573,7 @@ endblock %} {% block head %}
                     <th>Primary ERIC</th>
                     <th>Active</th>
                     <th>Source</th>
+                    <th>Sign-off</th>
                     <th></th>
                 </tr>
             </thead>
@@ -2087,6 +2586,14 @@ endblock %} {% block head %}
                     const sourceTag = s.is_user_submitted
                       ? '<span style="font-size:0.72rem; background:#e0e7ff; color:#3730a3; padding:0.1rem 0.4rem; border-radius:3px;">User</span>'
                       : '<span style="font-size:0.72rem; background:#f3f4f6; color:#6b7280; padding:0.1rem 0.4rem; border-radius:3px;">CSV</span>';
+                    const signoff =
+                      s.last_signoff_initials && s.last_signoff_at
+                        ? `<span style="font-size:0.78rem; white-space:normal;" title="${escapeHtml(
+                            (s.last_signoff_comment || "").replace(/"/g, "&quot;"),
+                          )}">${escapeHtml(s.last_signoff_initials)} · ${formatAdminSignoffShort(
+                            s.last_signoff_at,
+                          )}</span>`
+                        : "—";
                     return `<tr>
                         <td data-label="ID" style="font-size: 0.8rem; color: var(--color-muted);">${s.id}</td>
                         <td data-label="Strategy" style="font-size: 0.88rem;">${s.choice}</td>
@@ -2094,6 +2601,7 @@ endblock %} {% block head %}
                         <td data-label="Primary ERIC" style="font-size: 0.82rem;">${s.primary_eric || "—"}</td>
                         <td data-label="Active" style="text-align: left;">${activeIcon}</td>
                         <td data-label="Source">${sourceTag}</td>
+                        <td data-label="Sign-off" style="max-width: 9rem;">${signoff}</td>
                         <td class="admin-table__cell--actions" data-label="Actions"><button type="button" class="action-btn action-btn--edit" onclick="openStrategyEdit(${s.id})">Edit</button></td>
                     </tr>`;
                   })
@@ -2144,6 +2652,22 @@ endblock %} {% block head %}
     document.getElementById("seOtherSource").value = res.other_source || "";
     document.getElementById("seHelpText").value = res.help_text || "";
     document.getElementById("seActive").checked = res.is_active;
+    const seHint = document.getElementById("seLastSignoff");
+    if (res.last_signoff_at && res.last_signoff_initials) {
+      seHint.style.display = "block";
+      seHint.innerHTML =
+        "Last sign-off: " +
+        formatAdminSignoffLine(
+          res.last_signoff_initials,
+          res.last_signoff_at,
+          res.last_signoff_comment,
+        );
+    } else {
+      seHint.style.display = "none";
+      seHint.innerHTML = "";
+    }
+    document.getElementById("seSignoffInitials").value = "";
+    document.getElementById("seChangeComment").value = "";
     document.getElementById("strategyEditOverlay").classList.add("show");
   }
 
@@ -2159,6 +2683,20 @@ endblock %} {% block head %}
 
   async function saveStrategyEdit() {
     const id = document.getElementById("seId").value;
+    const signoff_initials = document
+      .getElementById("seSignoffInitials")
+      .value.trim();
+    const change_comment = document
+      .getElementById("seChangeComment")
+      .value.trim();
+    if (!signoff_initials) {
+      showToast("Initials are required", "error");
+      return;
+    }
+    if (!change_comment) {
+      showToast("Please describe what you changed before saving.", "error");
+      return;
+    }
     const res = await fetch(`/api/admin/strategies/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -2174,15 +2712,19 @@ endblock %} {% block head %}
         other_source: document.getElementById("seOtherSource").value,
         help_text: document.getElementById("seHelpText").value,
         is_active: document.getElementById("seActive").checked,
+        signoff_initials: signoff_initials,
+        change_comment: change_comment,
       }),
     });
     const data = await res.json();
+    if (!res.ok || data.error) {
+      showToast(data.error || "Update failed", "error");
+      return;
+    }
     if (data.success) {
       showToast("Strategy updated");
       closeStrategyEdit();
       loadStrategies(strategyPage);
-    } else {
-      showToast(data.error || "Update failed", "error");
     }
   }
 
