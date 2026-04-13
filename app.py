@@ -128,6 +128,14 @@ def _normalize_http_url(url):
     return u
 
 
+def _normalize_primary_eric(value):
+    """Normalize ERIC labels so encoding artifacts (e.g. trailing '\\u00c2') collapse."""
+    text = (value or '')
+    text = str(text).replace('\xa0', ' ').strip()
+    text = re.sub(r'(?:\s*\u00c2)+\s*$', '', text).strip()
+    return text
+
+
 def _youtube_video_id(url):
     if not url:
         return None
@@ -544,6 +552,15 @@ def admin_rankings():
     total_participants = UserSession.query.count()
     max_comp = total_strategies * (total_strategies - 1) // 2 if total_strategies > 1 else 0
 
+    eric_rows = db.session.query(Strategy.primary_eric).filter(
+        Strategy.is_active == True,
+    ).distinct().all()
+    primary_eric_values = sorted({
+        _normalize_primary_eric(r[0])
+        for r in eric_rows
+        if _normalize_primary_eric(r[0])
+    }, key=str.lower)
+
     return jsonify({
         'rankings': rankings[:12],
         'all_rankings': rankings,
@@ -552,6 +569,7 @@ def admin_rankings():
         'total_participants': total_participants,
         'max_comparisons': max_comp,
         'mode': SURVEY_MODE,
+        'primary_eric_values': primary_eric_values,
     })
 
 
@@ -572,7 +590,11 @@ def _bt_rankings(filter_type, filter_value):
         comparisons = [(c.winner_id, c.loser_id) for c in Comparison.query.all()
                        if c.session_id in role_sids and c.winner_id in sid_set and c.loser_id in sid_set]
     elif filter_type == 'eric' and filter_value:
-        eric_ids = set(s.id for s in strategies if s.primary_eric == filter_value)
+        normalized_filter = _normalize_primary_eric(filter_value)
+        eric_ids = set(
+            s.id for s in strategies
+            if _normalize_primary_eric(s.primary_eric) == normalized_filter
+        )
         comparisons = [(c.winner_id, c.loser_id) for c in Comparison.query.all()
                        if c.winner_id in eric_ids and c.loser_id in eric_ids]
         strategy_ids = list(eric_ids)
@@ -590,7 +612,7 @@ def _bt_rankings(filter_type, filter_value):
             appearances = sum(1 for w, l in comparisons if w == sid or l == sid)
             rankings.append({
                 'id': s.id, 'choice': s.choice, 'level': s.level,
-                'primary_eric': s.primary_eric, 'score': get_bt_score(beta),
+                'primary_eric': _normalize_primary_eric(s.primary_eric), 'score': get_bt_score(beta),
                 'beta': round(beta, 4), 'wins': wins, 'appearances': appearances,
             })
     return rankings
@@ -606,6 +628,14 @@ def _simple_rankings(filter_type, filter_value):
             s = UserSession.query.get(c.session_id)
             if not s or s.role != filter_value:
                 continue
+        if filter_type == 'eric' and filter_value:
+            wa = Strategy.query.get(c.winner_id)
+            lo = Strategy.query.get(c.loser_id)
+            normalized_filter = _normalize_primary_eric(filter_value)
+            if (not wa or not lo
+                    or _normalize_primary_eric(wa.primary_eric) != normalized_filter
+                    or _normalize_primary_eric(lo.primary_eric) != normalized_filter):
+                continue
         for sid in [c.winner_id, c.loser_id]:
             if sid not in stats:
                 stats[sid] = {'wins': 0, 'appearances': 0}
@@ -619,7 +649,7 @@ def _simple_rankings(filter_type, filter_value):
         if strategy and s['appearances'] > 0:
             rankings.append({
                 'id': strategy.id, 'choice': strategy.choice, 'level': strategy.level,
-                'primary_eric': strategy.primary_eric,
+                'primary_eric': _normalize_primary_eric(strategy.primary_eric),
                 'score': round(s['wins'] / s['appearances'] * 100, 1),
                 'wins': s['wins'], 'appearances': s['appearances'],
             })

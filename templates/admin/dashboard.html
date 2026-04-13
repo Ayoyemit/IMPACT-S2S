@@ -1723,6 +1723,8 @@ endblock %} {% block head %}
   let duplicatePickerPage = 1;
   let duplicatePickerSearchTimeout = null;
   const DUPLICATE_PICKER_PER_PAGE = 40;
+  /** Distinct primary ERIC values from active strategies (from /api/admin/rankings). */
+  let cachedPrimaryEricValues = [];
 
   function escapeHtml(str) {
     if (str == null) return "";
@@ -1941,13 +1943,19 @@ endblock %} {% block head %}
         .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
     }
-    document.getElementById("subFilterArea").style.display = "none";
-    closeSubFilterSheet();
-    currentSubFilter = null;
+    if (filter === "overall") {
+      document.getElementById("subFilterArea").style.display = "none";
+      closeSubFilterSheet();
+      currentSubFilter = null;
+    } else {
+      document.getElementById("subFilterArea").style.display = "block";
+      currentSubFilter = filter;
+    }
 
     const res = await api(
       `/api/admin/rankings?filter=${filter}&value=${encodeURIComponent(value)}`,
     );
+    cachedPrimaryEricValues = res.primary_eric_values || [];
     document.getElementById("statStrategies").textContent =
       res.total_strategies || 0;
     document.getElementById("statVotes").textContent = res.total_votes || 0;
@@ -1977,7 +1985,7 @@ endblock %} {% block head %}
       .join("");
   }
 
-  function toggleSubFilter(type, btn) {
+  async function toggleSubFilter(type, btn) {
     document
       .querySelectorAll(".rank-filters .rank-filter-btn")
       .forEach((b) => b.classList.remove("active"));
@@ -1997,7 +2005,23 @@ endblock %} {% block head %}
         '<option value="">All levels</option><option value="Provider">Provider</option><option value="Organization">Organization</option><option value="System">System</option><option value="Client">Client</option>';
     } else if (type === "eric") {
       options = '<option value="">All ERIC strategies</option>';
-      // Will be populated from data
+      let list = cachedPrimaryEricValues;
+      if (!list.length) {
+        try {
+          const r = await api(
+            `/api/admin/rankings?filter=overall&value=${encodeURIComponent("")}`,
+          );
+          list = r.primary_eric_values || [];
+          cachedPrimaryEricValues = list;
+        } catch (e) {
+          list = [];
+        }
+      }
+      list.forEach((eric) => {
+        const safeVal = escapeHtml(eric);
+        const safeLabel = escapeHtml(eric);
+        options += `<option value="${safeVal}">${safeLabel}</option>`;
+      });
     }
     select.innerHTML = options;
     setupSubFilterMobileUI();
