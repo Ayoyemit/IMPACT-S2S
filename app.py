@@ -11,6 +11,7 @@ from sqlalchemy import inspect, text
 import random
 import json
 import re
+import numpy as np
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -236,7 +237,7 @@ def get_exposure_counts_for_level(level):
         .all()
     )
     for sid, cnt in rows:
-        exposures[sid] = cnt
+        exposures[sid] = int(cnt) if cnt is not None else 0
     return exposures
 
 
@@ -260,6 +261,7 @@ def get_comparisons_for_level(level):
 
 def increment_exposure(strategy_a_id, strategy_b_id):
     for sid in [strategy_a_id, strategy_b_id]:
+        sid = int(sid)
         ec = ExposureCount.query.filter_by(strategy_id=sid).first()
         if ec:
             ec.count += 1
@@ -267,24 +269,47 @@ def increment_exposure(strategy_a_id, strategy_b_id):
             db.session.add(ExposureCount(strategy_id=sid, count=1))
 
 
+def _json_dumps_algo_blob(obj):
+    """json.dumps that accepts NumPy scalars (SciPy / DB drivers often produce these)."""
+
+    def _default(o):
+        if isinstance(o, np.generic):
+            return o.item()
+        raise TypeError(type(o))
+
+    return json.dumps(obj or {}, default=_default)
+
+
+def _as_int(v):
+    return None if v is None else int(v)
+
+
+def _as_float(v):
+    return None if v is None else float(v)
+
+
+def _as_bool(v):
+    return None if v is None else bool(v)
+
+
 def save_algorithm_log(log_data, session_id, level):
     algo_log = AlgorithmLog(
         session_id=session_id,
         level_context=level,
-        focal_id=log_data.get('focal_id'),
-        focal_sampling_prob=log_data.get('focal_sampling_prob'),
-        opponent_id=log_data.get('opponent_id'),
-        opponent_strength_diff=log_data.get('opponent_strength_diff'),
-        displayed_left_id=log_data.get('displayed_left_id'),
-        displayed_right_id=log_data.get('displayed_right_id'),
+        focal_id=_as_int(log_data.get('focal_id')),
+        focal_sampling_prob=_as_float(log_data.get('focal_sampling_prob')),
+        opponent_id=_as_int(log_data.get('opponent_id')),
+        opponent_strength_diff=_as_float(log_data.get('opponent_strength_diff')),
+        displayed_left_id=_as_int(log_data.get('displayed_left_id')),
+        displayed_right_id=_as_int(log_data.get('displayed_right_id')),
         proxy_type=log_data.get('proxy_type'),
-        num_comparisons_used=log_data.get('num_comparisons'),
-        was_cold_start=log_data.get('was_cold_start', False),
-        map_strengths_json=json.dumps(log_data.get('map_strengths', {})),
-        exposure_counts_json=json.dumps(log_data.get('exposure_counts', {})),
-        uncertainty_weights_json=json.dumps(log_data.get('uncertainty_weights', {})),
-        map_converged=log_data.get('map_converged'),
-        map_iterations=log_data.get('map_iterations'),
+        num_comparisons_used=_as_int(log_data.get('num_comparisons')),
+        was_cold_start=_as_bool(log_data.get('was_cold_start', False)),
+        map_strengths_json=_json_dumps_algo_blob(log_data.get('map_strengths')),
+        exposure_counts_json=_json_dumps_algo_blob(log_data.get('exposure_counts')),
+        uncertainty_weights_json=_json_dumps_algo_blob(log_data.get('uncertainty_weights')),
+        map_converged=_as_bool(log_data.get('map_converged')),
+        map_iterations=_as_int(log_data.get('map_iterations')),
     )
     db.session.add(algo_log)
     db.session.flush()
