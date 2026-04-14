@@ -226,20 +226,36 @@ def get_session_level_counts(sid):
 
 def get_exposure_counts_for_level(level):
     strategies = Strategy.query.filter(Strategy.is_active == True).all()
-    level_strategies = [s for s in strategies if level in s.get_levels()]
-    exposures = {}
-    for s in level_strategies:
-        ec = ExposureCount.query.filter_by(strategy_id=s.id).first()
-        exposures[s.id] = ec.count if ec else 0
+    level_ids = [s.id for s in strategies if level in s.get_levels()]
+    exposures = {sid: 0 for sid in level_ids}
+    if not level_ids:
+        return exposures
+    rows = (
+        db.session.query(ExposureCount.strategy_id, ExposureCount.count)
+        .filter(ExposureCount.strategy_id.in_(level_ids))
+        .all()
+    )
+    for sid, cnt in rows:
+        exposures[sid] = cnt
     return exposures
 
 
 def get_comparisons_for_level(level):
+    """Votes for the Bradley–Terry model for this tab: same level_context and both IDs in this level."""
     strategies = Strategy.query.filter(Strategy.is_active == True).all()
-    level_sids = set(s.id for s in strategies if level in s.get_levels())
-    all_comparisons = Comparison.query.all()
-    return [(c.winner_id, c.loser_id) for c in all_comparisons
-            if c.winner_id in level_sids and c.loser_id in level_sids]
+    level_ids = [s.id for s in strategies if level in s.get_levels()]
+    if len(level_ids) < 2:
+        return []
+    rows = (
+        db.session.query(Comparison.winner_id, Comparison.loser_id)
+        .filter(
+            Comparison.level_context == level,
+            Comparison.winner_id.in_(level_ids),
+            Comparison.loser_id.in_(level_ids),
+        )
+        .all()
+    )
+    return [(w, l) for w, l in rows]
 
 
 def increment_exposure(strategy_a_id, strategy_b_id):
@@ -364,52 +380,57 @@ def start_session():
 
 @app.route('/api/get-pair', methods=['POST'])
 def get_pair():
-    data = request.json
+    data = request.json or {}
     level = data.get('level', 'Provider')
     sid = session.get('session_id')
     if not sid:
         return jsonify({'error': 'No active session'}), 400
 
-    all_strategies = Strategy.query.filter(Strategy.is_active == True).all()
-    level_strategies = [s for s in all_strategies if level in s.get_levels()]
+    try:
+        all_strategies = Strategy.query.filter(Strategy.is_active == True).all()
+        level_strategies = [s for s in all_strategies if level in s.get_levels()]
 
-    if len(level_strategies) < 2:
-        return jsonify({'error': 'Not enough strategies for this level'}), 400
+        if len(level_strategies) < 2:
+            return jsonify({'error': 'Not enough strategies for this level'}), 400
 
-    strategy_map = {s.id: s for s in level_strategies}
-    algo_log_id = None
+        strategy_map = {s.id: s for s in level_strategies}
+        algo_log_id = None
 
-    if SURVEY_MODE == 'production':
-        # ── Bradley-Terry adaptive pair selection ──
-        level_sids = [s.id for s in level_strategies]
-        exposures = get_exposure_counts_for_level(level)
-        comparisons = get_comparisons_for_level(level)
+        if SURVEY_MODE == 'production':
+            # ── Bradley-Terry adaptive pair selection ──
+            level_sids = [s.id for s in level_strategies]
+            exposures = get_exposure_counts_for_level(level)
+            comparisons = get_comparisons_for_level(level)
 
-        log_data = pair_selector.select_pair(level_sids, comparisons, exposures)
-        if log_data is None:
-            return jsonify({'error': 'Could not select pair'}), 500
+            log_data = pair_selector.select_pair(level_sids, comparisons, exposures)
+            if log_data is None:
+                return jsonify({'error': 'Could not select pair'}), 500
 
-        left_id = log_data['displayed_left_id']
-        right_id = log_data['displayed_right_id']
+            left_id = log_data['displayed_left_id']
+            right_id = log_data['displayed_right_id']
 
-        increment_exposure(left_id, right_id)
-        algo_log_id = save_algorithm_log(log_data, sid, level)
-        db.session.commit()
+            increment_exposure(left_id, right_id)
+            algo_log_id = save_algorithm_log(log_data, sid, level)
+            db.session.commit()
 
-        strategy_a = strategy_map[left_id]
-        strategy_b = strategy_map[right_id]
-    else:
-        # ── Example mode: random pair ──
-        pair = random.sample(level_strategies, 2)
-        if random.random() < 0.5:
-            pair = [pair[1], pair[0]]
-        strategy_a, strategy_b = pair[0], pair[1]
+            strategy_a = strategy_map[left_id]
+            strategy_b = strategy_map[right_id]
+        else:
+            # ── Example mode: random pair ──
+            pair = random.sample(level_strategies, 2)
+            if random.random() < 0.5:
+                pair = [pair[1], pair[0]]
+            strategy_a, strategy_b = pair[0], pair[1]
 
-    return jsonify({
-        'strategy_a': strategy_a.to_dict(),
-        'strategy_b': strategy_b.to_dict(),
-        'algo_log_id': algo_log_id,
-    })
+        return jsonify({
+            'strategy_a': strategy_a.to_dict(),
+            'strategy_b': strategy_b.to_dict(),
+            'algo_log_id': algo_log_id,
+        })
+    except Exception as exc:
+        db.session.rollback()
+        print(f'[IMPACT S2S] get_pair error: {exc}')
+        return jsonify({'error': 'Could not load a pair. Please refresh or try again.'}), 500
 
 
 @app.route('/api/vote', methods=['POST'])

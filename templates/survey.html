@@ -214,12 +214,17 @@
         const container = document.getElementById('pairContainer');
         container.style.opacity = '0.4';
 
-        const res = await api('/api/get-pair', { level: currentLevel });
+        let res;
+        try {
+            res = await api('/api/get-pair', { level: currentLevel });
+        } finally {
+            container.style.opacity = '1';
+        }
 
         if (res.error) {
-            document.getElementById('textA').textContent = 'No strategies available';
-            document.getElementById('textB').textContent = 'Try another level';
-            container.style.opacity = '1';
+            document.getElementById('textA').textContent = 'Could not load strategies';
+            document.getElementById('textB').textContent = res.error;
+            showToast(res.error, 'error', 5000);
             return;
         }
 
