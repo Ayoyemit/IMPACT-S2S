@@ -1,7 +1,13 @@
 """Load real strategies from the CSV file into the database."""
 import csv
 import os
-from models import db, Strategy
+from models import db, Strategy, _normalize_implementation_level_token
+
+
+def _normalize_level_field(level_str):
+    """Map CSV 'Patient' tokens to 'Client' to match survey implementation levels."""
+    parts = [p.strip() for p in (level_str or '').split(',') if p.strip()]
+    return ', '.join(_normalize_implementation_level_token(p) for p in parts)
 
 
 def load_csv_strategies(csv_path):
@@ -27,7 +33,7 @@ def load_csv_strategies(csv_path):
             if not choice:
                 continue  # Skip empty rows
 
-            level = row.get('Level', '').strip()
+            level = _normalize_level_field(row.get('Level', '').strip())
             if not level:
                 continue  # Skip rows with no level
 

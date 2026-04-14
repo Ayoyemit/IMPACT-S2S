@@ -5,6 +5,12 @@ import uuid
 db = SQLAlchemy()
 
 
+def _normalize_implementation_level_token(token):
+    if token == 'Patient':
+        return 'Client'
+    return token
+
+
 class Strategy(db.Model):
     """Strategies/choices that users compare in pairs."""
     __tablename__ = 'strategies'
@@ -30,8 +36,13 @@ class Strategy(db.Model):
     last_signoff_comment = db.Column(db.Text, nullable=True)
 
     def get_levels(self):
-        """Return list of levels this strategy belongs to."""
-        return [l.strip() for l in self.level.split(',') if l.strip()]
+        """Return list of levels this strategy belongs to.
+
+        CSV data uses 'Patient' for the inner socioecological level; the survey UI
+        uses 'Client'. Treat them as equivalent for filtering and pairing.
+        """
+        raw = [l.strip() for l in (self.level or '').split(',') if l.strip()]
+        return [_normalize_implementation_level_token(l) for l in raw]
 
     def to_dict(self):
         return {
@@ -104,7 +115,8 @@ class CantDecide(db.Model):
     session_id = db.Column(db.String(50), db.ForeignKey('sessions.id'), nullable=False)
     strategy_a_id = db.Column(db.Integer, db.ForeignKey('strategies.id'), nullable=False)
     strategy_b_id = db.Column(db.Integer, db.ForeignKey('strategies.id'), nullable=False)
-    reason = db.Column(db.String(50), nullable=False)  # 'too_similar' or 'unclear'
+    reason = db.Column(db.String(50), nullable=False)  # 'too_similar', 'unclear', or 'other'
+    other_reason = db.Column(db.Text, nullable=True)  # free text when reason == 'other'
     level_context = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 

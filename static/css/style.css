@@ -830,6 +830,13 @@ a.nav-btn {
   text-align: center;
   cursor: pointer;
   transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.strategy-card:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
 }
 
 .strategy-card:hover {
@@ -954,6 +961,7 @@ a.nav-btn {
 
 .cant-decide-options.show {
   display: flex;
+  flex-wrap: wrap;
 }
 
 .cant-decide-reason {
@@ -1140,6 +1148,29 @@ a.nav-btn {
 
 .modal__btn--outline:hover {
   background: var(--color-surface);
+}
+
+.modal--compact {
+  max-width: 480px;
+  text-align: left;
+}
+
+.modal--compact .modal__title {
+  text-align: center;
+}
+
+.modal--compact .idea-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 0;
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
 }
 
 /* ─── QUICK GUIDE ──────────────────────────────────────────────────────────── */

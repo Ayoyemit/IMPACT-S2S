@@ -1183,7 +1183,7 @@ endblock %} {% block head %}
   <div class="admin-panel" id="panel-cantdecide">
     <div
       class="stat-grid admin-stat-grid--cd"
-      style="grid-template-columns: repeat(3, 1fr)"
+      style="grid-template-columns: repeat(4, minmax(0, 1fr))"
     >
       <div class="stat-card">
         <div class="stat-card__value" id="cdTotal">—</div>
@@ -1195,7 +1195,11 @@ endblock %} {% block head %}
       </div>
       <div class="stat-card">
         <div class="stat-card__value" id="cdUnclear">—</div>
-        <div class="stat-card__label">Unclear</div>
+        <div class="stat-card__label">One or Both Unclear</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="cdOther">—</div>
+        <div class="stat-card__label">Other</div>
       </div>
     </div>
     <div id="cdTableContainer">
@@ -2431,6 +2435,8 @@ endblock %} {% block head %}
       res.by_reason?.too_similar || 0;
     document.getElementById("cdUnclear").textContent =
       res.by_reason?.unclear || 0;
+    document.getElementById("cdOther").textContent =
+      res.by_reason?.other || 0;
 
     const container = document.getElementById("cdTableContainer");
     if (!res.records || !res.records.length) {
@@ -2442,7 +2448,7 @@ endblock %} {% block head %}
     container.innerHTML = `
         <table class="cd-table admin-table admin-table--cards">
             <thead>
-                <tr><th>Date</th><th>Strategy A</th><th>Strategy B</th><th>Reason</th><th>Level</th><th>User Role</th></tr>
+                <tr><th>Date</th><th>Strategy A</th><th>Strategy B</th><th>Reason</th><th>Note</th><th>Level</th><th>User Role</th></tr>
             </thead>
             <tbody>
                 ${res.records
@@ -2458,13 +2464,22 @@ endblock %} {% block head %}
                         hour: "2-digit",
                         minute: "2-digit",
                       });
-                    const reason =
-                      r.reason === "too_similar" ? "Too similar" : "Unclear";
+                    let reasonLabel = "Unclear";
+                    if (r.reason === "too_similar") reasonLabel = "Too similar";
+                    else if (r.reason === "unclear")
+                      reasonLabel = "One or both unclear";
+                    else if (r.reason === "other") reasonLabel = "Other";
+                    const note = String(r.other_reason || "")
+                      .replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;");
                     return `<tr>
                         <td data-label="Date">${dateStr}</td>
                         <td data-label="Strategy A">${r.strategy_a}</td>
                         <td data-label="Strategy B">${r.strategy_b}</td>
-                        <td data-label="Reason">${reason}</td>
+                        <td data-label="Reason">${reasonLabel}</td>
+                        <td data-label="Note" style="font-size:0.85rem;max-width:280px;">${note || "—"}</td>
                         <td data-label="Level">${r.level}</td>
                         <td data-label="User Role">${r.user_role}</td>
                     </tr>`;

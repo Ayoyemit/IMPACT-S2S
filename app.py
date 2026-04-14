@@ -69,34 +69,41 @@ def migrate_app_settings_schema():
         print(f'[IMPACT S2S] app_settings schema cleanup skipped (e.g. SQLite < 3.35): {exc}')
 
 
+def ensure_db_column(table, col_name, col_sql):
+    """Add column to table if missing (SQLite/Postgres)."""
+    try:
+        inspector = inspect(db.engine)
+    except Exception:
+        return
+    if table not in inspector.get_table_names():
+        return
+    existing = {c['name'] for c in inspector.get_columns(table)}
+    if col_name in existing:
+        return
+    try:
+        with db.engine.begin() as conn:
+            conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {col_name} {col_sql}'))
+        print(f'[IMPACT S2S] Added column {table}.{col_name}')
+    except Exception as exc:
+        print(f'[IMPACT S2S] Could not add {table}.{col_name}: {exc}')
+
+
 def migrate_admin_signoff_columns():
     """Add last sign-off columns to strategies and submitted_ideas if missing."""
     dialect = db.engine.dialect.name
     ts_type = 'TIMESTAMP WITH TIME ZONE' if dialect == 'postgresql' else 'DATETIME'
 
-    def ensure_column(table, col_name, col_sql):
-        try:
-            inspector = inspect(db.engine)
-        except Exception:
-            return
-        if table not in inspector.get_table_names():
-            return
-        existing = {c['name'] for c in inspector.get_columns(table)}
-        if col_name in existing:
-            return
-        try:
-            with db.engine.begin() as conn:
-                conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {col_name} {col_sql}'))
-            print(f'[IMPACT S2S] Added column {table}.{col_name}')
-        except Exception as exc:
-            print(f'[IMPACT S2S] Could not add {table}.{col_name}: {exc}')
+    ensure_db_column('strategies', 'last_signoff_initials', 'VARCHAR(32)')
+    ensure_db_column('strategies', 'last_signoff_at', ts_type)
+    ensure_db_column('strategies', 'last_signoff_comment', 'TEXT')
+    ensure_db_column('submitted_ideas', 'last_signoff_initials', 'VARCHAR(32)')
+    ensure_db_column('submitted_ideas', 'last_signoff_at', ts_type)
+    ensure_db_column('submitted_ideas', 'last_signoff_comment', 'TEXT')
 
-    ensure_column('strategies', 'last_signoff_initials', 'VARCHAR(32)')
-    ensure_column('strategies', 'last_signoff_at', ts_type)
-    ensure_column('strategies', 'last_signoff_comment', 'TEXT')
-    ensure_column('submitted_ideas', 'last_signoff_initials', 'VARCHAR(32)')
-    ensure_column('submitted_ideas', 'last_signoff_at', ts_type)
-    ensure_column('submitted_ideas', 'last_signoff_comment', 'TEXT')
+
+def migrate_cant_decide_other_reason():
+    """Add other_reason to cant_decides if missing (existing deployments)."""
+    ensure_db_column('cant_decides', 'other_reason', 'TEXT')
 
 
 # ─── Initialize DB ─────────────────────────────────────────────────────────────
@@ -104,6 +111,7 @@ with app.app_context():
     db.create_all()
     migrate_app_settings_schema()
     migrate_admin_signoff_columns()
+    migrate_cant_decide_other_reason()
     if AppSettings.query.get(1) is None:
         db.session.add(AppSettings(id=1))
         db.session.commit()
@@ -498,9 +506,23 @@ def cant_decide():
     if not sid:
         return jsonify({'error': 'No active session'}), 400
 
+    reason = (data.get('reason') or '').strip()
+    if reason not in ('too_similar', 'unclear', 'other'):
+        return jsonify({'error': 'Invalid reason'}), 400
+
+    other_reason = (data.get('other_reason') or '').strip()
+    if reason == 'other':
+        if not other_reason:
+            return jsonify({'error': 'Please enter a reason'}), 400
+        if len(other_reason) > 2000:
+            return jsonify({'error': 'Reason is too long (max 2000 characters)'}), 400
+    else:
+        other_reason = None
+
     db.session.add(CantDecide(
         session_id=sid, strategy_a_id=data.get('strategy_a_id'),
-        strategy_b_id=data.get('strategy_b_id'), reason=data.get('reason'),
+        strategy_b_id=data.get('strategy_b_id'), reason=reason,
+        other_reason=other_reason,
         level_context=data.get('level')))
 
     algo_log_id = data.get('algo_log_id')
@@ -849,7 +871,9 @@ def admin_cant_decides():
             'id': r.id,
             'strategy_a': r.strategy_a.choice if r.strategy_a else 'N/A',
             'strategy_b': r.strategy_b.choice if r.strategy_b else 'N/A',
-            'reason': r.reason, 'level': r.level_context,
+            'reason': r.reason,
+            'other_reason': r.other_reason or '',
+            'level': r.level_context,
             'user_role': UserSession.query.get(r.session_id).role if UserSession.query.get(r.session_id) else 'N/A',
             'created_at': r.created_at.isoformat(),
         } for r in records],
@@ -857,6 +881,7 @@ def admin_cant_decides():
         'by_reason': {
             'too_similar': CantDecide.query.filter_by(reason='too_similar').count(),
             'unclear': CantDecide.query.filter_by(reason='unclear').count(),
+            'other': CantDecide.query.filter_by(reason='other').count(),
         }
     })
 

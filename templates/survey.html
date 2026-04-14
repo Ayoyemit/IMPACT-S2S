@@ -86,8 +86,9 @@
         <div class="cant-decide-section">
             <button class="cant-decide-btn" onclick="toggleCantDecide()">I Can't Decide</button>
             <div class="cant-decide-options" id="cantDecideOptions">
-                <button class="cant-decide-reason" onclick="cantDecide('too_similar')">Both seem similar</button>
-                <button class="cant-decide-reason" onclick="cantDecide('unclear')">Both are unclear</button>
+                <button type="button" class="cant-decide-reason" onclick="cantDecide('too_similar')">Both seem similar</button>
+                <button type="button" class="cant-decide-reason" onclick="cantDecide('unclear')">One or both are unclear</button>
+                <button type="button" class="cant-decide-reason" onclick="openCantDecideOtherModal()">Other</button>
             </div>
         </div>
 
@@ -122,6 +123,20 @@
         </p>
         <div>
             <button class="modal__btn" onclick="closeCelebration()">Continue</button>
+        </div>
+    </div>
+</div>
+
+<!-- Other reason (can't decide) -->
+<div class="modal-backdrop" id="cantDecideOtherModal" role="dialog" aria-modal="true" aria-labelledby="cantDecideOtherTitle">
+    <div class="modal modal--compact">
+        <h3 class="modal__title" id="cantDecideOtherTitle">Other</h3>
+        <p class="modal__text">Briefly describe why you can’t decide between these strategies.</p>
+        <textarea class="idea-textarea" id="cantDecideOtherText" maxlength="2000" rows="4"
+                  placeholder="Type your reason here..." aria-label="Reason you cannot decide"></textarea>
+        <div class="modal__actions">
+            <button type="button" class="modal__btn modal__btn--outline" onclick="closeCantDecideOtherModal()">Cancel</button>
+            <button type="button" class="modal__btn" onclick="submitCantDecideOther()">Submit</button>
         </div>
     </div>
 </div>
@@ -212,6 +227,10 @@
     // ── Load pair ──
     async function loadPair() {
         const container = document.getElementById('pairContainer');
+        // Drop focus from the previous pair so mobile browsers don't keep a "stuck" highlight on A/B.
+        const ae = document.activeElement;
+        if (ae && typeof ae.blur === 'function') ae.blur();
+
         container.style.opacity = '0.4';
 
         let res;
@@ -255,6 +274,7 @@
 
         // Close cant decide options
         document.getElementById('cantDecideOptions').classList.remove('show');
+        closeCantDecideOtherModal();
     }
 
     function setupInfoIcon(side, helpText) {
@@ -334,7 +354,49 @@
             algo_log_id: currentAlgoLogId,
         });
 
-        showToast(reason === 'too_similar' ? 'Got it — loading a new pair' : 'Noted — loading a new pair');
+        const msg = reason === 'too_similar'
+            ? 'Got it — loading a new pair'
+            : 'Noted — loading a new pair';
+        showToast(msg);
+        loadPair();
+    }
+
+    function openCantDecideOtherModal() {
+        if (!currentPair.a || !currentPair.b) return;
+        document.getElementById('cantDecideOptions').classList.remove('show');
+        document.getElementById('cantDecideOtherText').value = '';
+        document.getElementById('cantDecideOtherModal').classList.add('show');
+        setTimeout(() => {
+            const ta = document.getElementById('cantDecideOtherText');
+            if (ta) ta.focus();
+        }, 100);
+    }
+
+    function closeCantDecideOtherModal() {
+        document.getElementById('cantDecideOtherModal').classList.remove('show');
+    }
+
+    async function submitCantDecideOther() {
+        if (!currentPair.a || !currentPair.b) return;
+        const text = document.getElementById('cantDecideOtherText').value.trim();
+        if (!text) {
+            showToast('Please enter a reason', 'error');
+            return;
+        }
+        const res = await api('/api/cant-decide', {
+            strategy_a_id: currentPair.a.id,
+            strategy_b_id: currentPair.b.id,
+            reason: 'other',
+            other_reason: text,
+            level: currentLevel,
+            algo_log_id: currentAlgoLogId,
+        });
+        if (res.error) {
+            showToast(res.error, 'error');
+            return;
+        }
+        closeCantDecideOtherModal();
+        showToast('Noted — loading a new pair');
         loadPair();
     }
 
@@ -446,6 +508,9 @@
     });
     document.getElementById('celebrationModal').addEventListener('click', function(e) {
         if (e.target === this) closeCelebration();
+    });
+    document.getElementById('cantDecideOtherModal').addEventListener('click', function(e) {
+        if (e.target === this) closeCantDecideOtherModal();
     });
 
     // ── Accordion ──
