@@ -39,7 +39,7 @@
         <button class="level-btn level-btn--{{ level|lower|replace('/', '') }} {% if loop.first %}active{% endif %}"
                 data-level="{{ level }}"
                 onclick="switchLevel('{{ level }}', this)">
-            {{ level }} Level
+            {% if level == 'Client' %}Patient{% else %}{{ level }}{% endif %} Level
             <span class="check-icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
             </span>
@@ -61,7 +61,7 @@
 
     <!-- MAIN CONTENT -->
     <main class="main-content">
-        <div class="level-label" id="levelLabel">{{ level_order[0] }} Level</div>
+        <div class="level-label" id="levelLabel">{% if level_order[0] == 'Client' %}Patient{% else %}{{ level_order[0] }}{% endif %} Level</div>
 
         <h2 class="question-text">
             Which do you think is more important for increasing delivery of smoking cessation treatment in community mental health settings?
@@ -163,6 +163,11 @@
         'System': 'progress-bar-fill--system',
         'Client': 'progress-bar-fill--client',
     };
+
+    /** Display name for the active tab (API still uses "Client"). */
+    function implementationLevelDisplayName(level) {
+        return level === 'Client' ? 'Patient' : level;
+    }
 
     function closeNavbarMenu() {
         const menu = document.getElementById('navbarMobileMenu');
@@ -446,7 +451,7 @@
         btn.classList.add('active');
 
         // Update label
-        document.getElementById('levelLabel').textContent = level + ' Level';
+        document.getElementById('levelLabel').textContent = implementationLevelDisplayName(level) + ' Level';
 
         // Update progress bar
         updateProgress();
@@ -497,7 +502,7 @@
 
     // ── Celebration ──
     function showCelebration() {
-        document.getElementById('celebrationLevel').textContent = currentLevel;
+        document.getElementById('celebrationLevel').textContent = implementationLevelDisplayName(currentLevel);
         document.getElementById('celebrationModal').classList.add('show');
     }
 
