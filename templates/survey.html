@@ -224,6 +224,18 @@
         });
     });
 
+    // Clears WebKit/Android "sticky :hover" after touch — same DOM nodes are reused for each pair.
+    function resetStrategyCardPointerState() {
+        const a = document.getElementById('cardA');
+        const b = document.getElementById('cardB');
+        if (!a || !b) return;
+        [a, b].forEach((el) => { el.style.pointerEvents = 'none'; });
+        void a.offsetWidth;
+        requestAnimationFrame(() => {
+            [a, b].forEach((el) => { el.style.pointerEvents = ''; });
+        });
+    }
+
     // ── Load pair ──
     async function loadPair() {
         const container = document.getElementById('pairContainer');
@@ -262,6 +274,7 @@
         // Reset card styles
         document.getElementById('cardA').classList.remove('selected');
         document.getElementById('cardB').classList.remove('selected');
+        resetStrategyCardPointerState();
 
         // Animate in
         container.style.opacity = '1';

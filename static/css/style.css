@@ -832,6 +832,7 @@ a.nav-btn {
   transition: var(--transition);
   -webkit-tap-highlight-color: transparent;
   outline: none;
+  touch-action: manipulation;
 }
 
 .strategy-card:focus-visible {
@@ -839,14 +840,17 @@ a.nav-btn {
   outline-offset: 3px;
 }
 
-.strategy-card:hover {
-  border-color: var(--color-accent);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-3px);
-}
+/* Only real hover (mouse/trackpad). Touch devices get "sticky hover" after tap if we style :hover globally. */
+@media (hover: hover) and (pointer: fine) {
+  .strategy-card:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-3px);
+  }
 
-.strategy-card:active {
-  transform: translateY(0);
+  .strategy-card:active {
+    transform: translateY(0);
+  }
 }
 
 .strategy-card.selected {
