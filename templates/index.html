@@ -439,10 +439,6 @@
       document.getElementById('onionDesc').innerHTML = ONION_DESCS[level] || '';
   }
 
-  {% if auto_show_quick_guide %}
-  setTimeout(function() { openQuickGuide(); }, 2000);
-  {% endif %}
-
   if (window.matchMedia('(max-width: 900px)').matches) {
       document.getElementById('teamSection')?.removeAttribute('open');
   }

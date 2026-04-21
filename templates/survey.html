@@ -366,6 +366,9 @@ block body %}
 </div>
 
 {% include 'partials/quick_guide.html' %} {% endblock %} {% block scripts %}
+<script type="application/json" id="surveyPageConfig">
+  {{ {"level_order": level_order, "auto_show_quick_guide": auto_show_quick_guide}|tojson }}
+</script>
 <script>
   // ── State ──
   const SESSION_ID = '{{ session_id }}';
@@ -398,7 +401,10 @@ block body %}
       'System': 'strategy-card__info--system',
       'Client': 'strategy-card__info--client',
   };
-  const LEVEL_ORDER = [{% for level in level_order %}'{{ level }}'{% if not loop.last %}, {% endif %}{% endfor %}];
+  const surveyPageConfig = JSON.parse(
+      document.getElementById('surveyPageConfig').textContent
+  );
+  const LEVEL_ORDER = surveyPageConfig.level_order;
 
   /** Display name for the active tab (API still uses "Client"). */
   function implementationLevelDisplayName(level) {
@@ -459,6 +465,10 @@ block body %}
 
   // ── Init ──
   document.addEventListener('DOMContentLoaded', async () => {
+      if (surveyPageConfig.auto_show_quick_guide) {
+          setTimeout(function() { openQuickGuide(); }, 2000);
+      }
+
       const toggle = document.getElementById('navbarMenuToggle');
       const backdrop = document.getElementById('navbarMobileBackdrop');
       if (toggle) toggle.addEventListener('click', toggleNavbarMenu);
