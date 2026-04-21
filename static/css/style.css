@@ -889,35 +889,56 @@ a.nav-btn {
 }
 
 .level-btn--provider {
-  border-color: var(--level-provider-border);
-  background: var(--level-provider-bg);
+  border-color: transparent;
+  background: rgba(244, 114, 182, 0.22);
 }
 .level-btn--provider.active {
   background: rgba(244, 114, 182, 0.3);
+  border-color: var(--level-provider-border);
+}
+.level-btn--provider.completed {
+  border-color: var(--level-provider-border);
 }
 
 .level-btn--organization {
-  border-color: var(--level-org-border);
-  background: var(--level-org-bg);
+  border-color: transparent;
+  background: rgba(253, 230, 138, 0.24);
 }
 .level-btn--organization.active {
   background: rgba(253, 230, 138, 0.3);
+  border-color: var(--level-org-border);
+}
+.level-btn--organization.completed {
+  border-color: var(--level-org-border);
 }
 
 .level-btn--system {
-  border-color: var(--level-system-border);
-  background: var(--level-system-bg);
+  border-color: transparent;
+  background: rgba(167, 243, 208, 0.22);
 }
 .level-btn--system.active {
   background: rgba(167, 243, 208, 0.26);
+  border-color: var(--level-system-border);
+}
+.level-btn--system.completed {
+  border-color: var(--level-system-border);
 }
 
 .level-btn--client {
-  border-color: var(--level-client-border);
-  background: var(--level-client-bg);
+  border-color: transparent;
+  background: rgba(59, 130, 246, 0.2);
 }
 .level-btn--client.active {
   background: rgba(59, 130, 246, 0.28);
+  border-color: var(--level-client-border);
+}
+.level-btn--client.completed {
+  border-color: var(--level-client-border);
+}
+
+.level-btn:not(.active):not(.completed):hover {
+  filter: saturate(1.08);
+  box-shadow: 0 2px 8px rgba(55, 65, 81, 0.08);
 }
 
 /* Level completion indicator */

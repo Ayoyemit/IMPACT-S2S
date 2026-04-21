@@ -615,8 +615,8 @@ block body %}
           updateProgress();
 
           if (areAllLevelsComplete()) {
-              showAllLevelsCompleteModal();
-              return;
+                const openedCompletionModal = showAllLevelsCompleteModal();
+                if (openedCompletionModal) return;
           }
 
           // Check celebration
@@ -791,10 +791,11 @@ block body %}
       document.getElementById('celebrationModal').classList.remove('show');
   }
 
-  function showAllLevelsCompleteModal() {
-      if (hasShownAllLevelsCompleteModal) return;
+    function showAllLevelsCompleteModal() {
+        if (hasShownAllLevelsCompleteModal) return false;
       hasShownAllLevelsCompleteModal = true;
       document.getElementById('allLevelsCompleteModal').classList.add('show');
+        return true;
   }
 
   function closeAllLevelsCompleteModal() {
