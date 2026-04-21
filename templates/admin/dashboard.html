@@ -1722,6 +1722,37 @@ endblock %} {% block head %}
 
 {% endblock %} {% block scripts %}
 <script>
+  const ADMIN_TIMEZONE = "America/New_York";
+
+  function parseServerDate(iso) {
+    if (!iso) return null;
+    // API timestamps may arrive without an explicit timezone; treat them as UTC.
+    const normalized = /(?:Z|[+-]\d{2}:\d{2})$/i.test(iso) ? iso : `${iso}Z`;
+    const d = new Date(normalized);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function formatAdminDateTime(
+    iso,
+    { includeYear = true, includeSeconds = false } = {},
+  ) {
+    const d = parseServerDate(iso);
+    if (!d) return "—";
+    const datePart = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      ...(includeYear ? { year: "numeric" } : {}),
+      timeZone: ADMIN_TIMEZONE,
+    });
+    const timePart = d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      ...(includeSeconds ? { second: "2-digit" } : {}),
+      timeZone: ADMIN_TIMEZONE,
+    });
+    return `${datePart} ${timePart} ET`;
+  }
+
   let currentSubFilter = null;
   let allIdeas = [];
   let duplicatePickerPage = 1;
@@ -1741,16 +1772,7 @@ endblock %} {% block head %}
 
   function formatAdminSignoffShort(iso) {
     if (!iso) return "";
-    const d = new Date(iso);
-    return (
-      d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }) +
-      " " +
-      d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-    );
+    return formatAdminDateTime(iso, { includeYear: true, includeSeconds: false });
   }
 
   /** Returns HTML (safe for innerHTML): initials, time, optional comment. */
@@ -2072,18 +2094,10 @@ endblock %} {% block head %}
     }
     container.innerHTML = ideas
       .map((idea) => {
-        const date = new Date(idea.created_at);
-        const dateStr =
-          date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          }) +
-          " at " +
-          date.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
+        const dateStr = formatAdminDateTime(idea.created_at, {
+          includeYear: true,
+          includeSeconds: false,
+        });
         const statusBadge = `<span class="status-badge status-badge--${idea.status}">${idea.status}</span>`;
         const levelBadge = idea.assigned_level
           ? `<span class="review-card__role" style="background: var(--level-${idea.assigned_level.split(",")[0].trim().toLowerCase()}-bg, var(--color-surface));">${idea.assigned_level}</span>`
@@ -2448,22 +2462,15 @@ endblock %} {% block head %}
     container.innerHTML = `
         <table class="cd-table admin-table admin-table--cards">
             <thead>
-                <tr><th>Date</th><th>Strategy A</th><th>Strategy B</th><th>Reason</th><th>Note</th><th>Level</th><th>User Role</th></tr>
+                <tr><th>Date (ET)</th><th>Strategy A</th><th>Strategy B</th><th>Reason</th><th>Note</th><th>Level</th><th>User Role</th></tr>
             </thead>
             <tbody>
                 ${res.records
                   .map((r) => {
-                    const date = new Date(r.created_at);
-                    const dateStr =
-                      date.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      }) +
-                      " " +
-                      date.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      });
+                    const dateStr = formatAdminDateTime(r.created_at, {
+                      includeYear: false,
+                      includeSeconds: false,
+                    });
                     let reasonLabel = "Unclear";
                     if (r.reason === "too_similar") reasonLabel = "Too similar";
                     else if (r.reason === "unclear")
@@ -2512,22 +2519,15 @@ endblock %} {% block head %}
     container.innerHTML = `
         <table class="participant-table admin-table admin-table--cards">
             <thead>
-                <tr><th>Session ID</th><th>Role</th><th>Date</th><th>Duration</th><th>Votes</th><th>Ideas</th><th>Can't decide</th><th>Levels</th></tr>
+                <tr><th>Session ID</th><th>Role</th><th>Date (ET)</th><th>Duration</th><th>Votes</th><th>Ideas</th><th>Can't decide</th><th>Levels</th></tr>
             </thead>
             <tbody>
                 ${res.participants
                   .map((p) => {
-                    const date = new Date(p.started_at);
-                    const dateStr =
-                      date.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      }) +
-                      " " +
-                      date.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      });
+                    const dateStr = formatAdminDateTime(p.started_at, {
+                      includeYear: false,
+                      includeSeconds: false,
+                    });
                     const dur = p.duration_seconds
                       ? formatDuration(p.duration_seconds)
                       : "—";
@@ -2822,7 +2822,7 @@ endblock %} {% block head %}
         <table class="cd-table admin-table admin-table--cards">
             <thead>
                 <tr>
-                    <th>Time</th>
+                    <th>Time (ET)</th>
                     <th>Session ID</th>
                     <th>Level</th>
                     <th>Focal Strategy</th>
@@ -2840,18 +2840,10 @@ endblock %} {% block head %}
             <tbody>
                 ${res.records
                   .map((r) => {
-                    const date = new Date(r.timestamp);
-                    const dateStr =
-                      date.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      }) +
-                      " " +
-                      date.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      });
+                    const dateStr = formatAdminDateTime(r.timestamp, {
+                      includeYear: false,
+                      includeSeconds: true,
+                    });
                     const outcomeColor =
                       r.outcome === "vote"
                         ? "var(--color-success)"
