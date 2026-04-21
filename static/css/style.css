@@ -106,15 +106,14 @@ body {
 /* Full viewport: landing has no navbar (survey uses -56px elsewhere). */
 .hero--combined {
   min-height: 100svh;
-  height: 100svh;
   padding: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .hero--combined .hero__content {
   max-width: none;
-  min-height: 100%;
-  height: 100%;
+  min-height: 100svh;
+  height: auto;
   display: flex;
   flex-direction: column;
 }
@@ -124,8 +123,8 @@ body {
   grid-template-columns: minmax(320px, 1fr) minmax(0, 1.95fr);
   grid-template-rows: 1fr;
   flex: 1;
-  min-height: 0;
-  height: 100%;
+  min-height: 100svh;
+  height: auto;
   align-items: stretch;
 }
 
@@ -185,7 +184,8 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  overflow: visible;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .hero-about::after {
