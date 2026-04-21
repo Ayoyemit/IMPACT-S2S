@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">Team member photo placeholder</title>
+  <desc id="desc">Abstract placeholder image for a team member portrait.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#e6efff" />
+      <stop offset="100%" stop-color="#c9dcff" />
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" fill="url(#bg)" />
+  <circle cx="80" cy="62" r="28" fill="#9bb7ef" />
+  <path d="M24 146c0-31 25-56 56-56s56 25 56 56" fill="#9bb7ef" />
+</svg>

@@ -1,561 +1,897 @@
-{% extends "base.html" %}
-{% block title %}Vote — IMPACT S2S{% endblock %}
-
-{% block body %}
+{% extends "base.html" %} {% block title %}Vote — IMPACT S2S{% endblock %} {%
+block body %}
 <!-- ═══ NAVBAR ═══ -->
 <nav class="navbar">
-    <div class="navbar__left">
-        <button type="button" class="navbar__back" aria-label="Go back" onclick="window.location.href='/'">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </button>
-        <span class="navbar__title-wrap"><span class="navbar__title">Smoking Cessation: Vote for Best Strategies</span></span>
-    </div>
-    <div class="navbar__right navbar__right--desktop">
-        <a href="{{ url_for('index') }}" class="nav-btn nav-btn--ghost navbar__home">Home</a>
-        <button type="button" class="nav-btn nav-btn--vote" id="voteNavBtn">Vote</button>
-        <button type="button" class="nav-btn nav-btn--ghost" onclick="openQuickGuide()">Help</button>
-    </div>
-    <button type="button" class="navbar__menu-toggle" id="navbarMenuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="navbarMobileMenu">
-        <svg class="navbar__menu-icon--open" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-        <svg class="navbar__menu-icon--close" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  <div class="navbar__left">
+    <button
+      type="button"
+      class="navbar__back"
+      aria-label="Go back"
+      onclick="window.location.href = '/'"
+    >
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
     </button>
+    <span class="navbar__title-wrap"
+      ><span class="navbar__title"
+        >Tobacco Smoking Cessation: Vote for Best Strategies</span
+      ></span
+    >
+  </div>
+  <div class="navbar__right navbar__right--desktop">
+    <a href="{{ url_for('index') }}" class="nav-btn nav-btn--ghost navbar__home"
+      >Home</a
+    >
+    <button type="button" class="nav-btn nav-btn--vote" id="voteNavBtn">
+      Vote
+    </button>
+    <button
+      type="button"
+      class="nav-btn nav-btn--ghost"
+      onclick="openQuickGuide()"
+    >
+      Help
+    </button>
+  </div>
+  <button
+    type="button"
+    class="navbar__menu-toggle"
+    id="navbarMenuToggle"
+    aria-label="Open menu"
+    aria-expanded="false"
+    aria-controls="navbarMobileMenu"
+  >
+    <svg
+      class="navbar__menu-icon--open"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+    >
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+    <svg
+      class="navbar__menu-icon--close"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+    >
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  </button>
 </nav>
-<div class="navbar-mobile-backdrop" id="navbarMobileBackdrop" aria-hidden="true"></div>
-<div class="navbar-mobile-menu" id="navbarMobileMenu" role="dialog" aria-label="Site menu">
-    <a href="{{ url_for('index') }}" class="navbar-mobile-menu__link" onclick="closeNavbarMenu()">Home</a>
-    <button type="button" class="navbar-mobile-menu__btn navbar-mobile-menu__btn--vote" id="voteNavBtnMobile">Vote</button>
-    <button type="button" class="navbar-mobile-menu__btn navbar-mobile-menu__btn--ghost" onclick="openQuickGuide()">Help</button>
+<div
+  class="navbar-mobile-backdrop"
+  id="navbarMobileBackdrop"
+  aria-hidden="true"
+></div>
+<div
+  class="navbar-mobile-menu"
+  id="navbarMobileMenu"
+  role="dialog"
+  aria-label="Site menu"
+>
+  <a
+    href="{{ url_for('index') }}"
+    class="navbar-mobile-menu__link"
+    onclick="closeNavbarMenu()"
+    >Home</a
+  >
+  <button
+    type="button"
+    class="navbar-mobile-menu__btn navbar-mobile-menu__btn--vote"
+    id="voteNavBtnMobile"
+  >
+    Vote
+  </button>
+  <button
+    type="button"
+    class="navbar-mobile-menu__btn navbar-mobile-menu__btn--ghost"
+    onclick="openQuickGuide()"
+  >
+    Help
+  </button>
 </div>
 
 <!-- ═══ SURVEY LAYOUT ═══ -->
 <div class="survey-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar__title">Implementation Levels</div>
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-        <div class="sidebar__title">Implementation Levels</div>
+    <div class="sidebar__levels">
+      {% for level in level_order %}
+      <button
+        class="level-btn level-btn--{{ level|lower|replace('/', '') }} {% if loop.first %}active{% endif %}"
+        data-level="{{ level }}"
+        onclick="switchLevel('{{ level }}', this)"
+      >
+        {% if level == 'Client' %}Patient{% else %}{{ level }}{% endif %} Level
+        <span class="check-icon">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--color-success)"
+            stroke-width="3"
+          >
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        </span>
+      </button>
+      {% endfor %}
+    </div>
 
-        <div class="sidebar__levels">
-        {% for level in level_order %}
-        <button class="level-btn level-btn--{{ level|lower|replace('/', '') }} {% if loop.first %}active{% endif %}"
-                data-level="{{ level }}"
-                onclick="switchLevel('{{ level }}', this)">
-            {% if level == 'Client' %}Patient{% else %}{{ level }}{% endif %} Level
-            <span class="check-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-            </span>
+    <!-- Progress bar -->
+    <div class="progress-section">
+      <div class="progress-title">Progress Bar</div>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressFill" style="width: 0%">
+          <span class="progress-star" id="progressStar" style="display: none"
+            >⭐</span
+          >
+        </div>
+      </div>
+      <div class="progress-label" id="progressLabel">0 of 5 selections</div>
+      <div
+        class="progress-extra"
+        id="progressExtra"
+        style="
+          display: none;
+          text-align: center;
+          font-size: 0.78rem;
+          color: var(--color-muted);
+          margin-top: 0.25rem;
+        "
+      ></div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <div class="level-label" id="levelLabel">
+      {% if level_order[0] == 'Client' %}Patient{% else %}{{ level_order[0] }}{%
+      endif %} Level
+    </div>
+
+    <h2 class="question-text">
+      Which do you think is more important for increasing delivery of smoking
+      cessation treatment in community mental health settings?
+    </h2>
+    <p class="question-subtext">
+      Click on one strategy below to make your choice
+    </p>
+
+    <!-- Strategy pair -->
+    <div class="pair-container" id="pairContainer">
+      <div class="strategy-card card-enter" id="cardA" onclick="vote('A')">
+        <span class="strategy-card__text" id="textA">Loading...</span>
+        <span
+          class="strategy-card__info"
+          id="infoA"
+          style="display: none"
+          onclick="
+            event.stopPropagation();
+            toggleTooltip('A');
+          "
+          >i</span
+        >
+        <div class="tooltip" id="tooltipA"></div>
+      </div>
+      <div class="strategy-card card-enter" id="cardB" onclick="vote('B')">
+        <span class="strategy-card__text" id="textB">Loading...</span>
+        <span
+          class="strategy-card__info"
+          id="infoB"
+          style="display: none"
+          onclick="
+            event.stopPropagation();
+            toggleTooltip('B');
+          "
+          >i</span
+        >
+        <div class="tooltip" id="tooltipB"></div>
+      </div>
+    </div>
+
+    <!-- Can't decide -->
+    <div class="cant-decide-section">
+      <button class="cant-decide-btn" onclick="toggleCantDecide()">
+        I Can't Decide
+      </button>
+      <div class="cant-decide-options" id="cantDecideOptions">
+        <button
+          type="button"
+          class="cant-decide-reason"
+          onclick="cantDecide('too_similar')"
+        >
+          Both seem similar
         </button>
-        {% endfor %}
-        </div>
+        <button
+          type="button"
+          class="cant-decide-reason"
+          onclick="cantDecide('unclear')"
+        >
+          One or both are unclear
+        </button>
+        <button
+          type="button"
+          class="cant-decide-reason"
+          onclick="openCantDecideOtherModal()"
+        >
+          Other
+        </button>
+      </div>
+    </div>
 
-        <!-- Progress bar -->
-        <div class="progress-section">
-            <div class="progress-bar-container">
-                <div class="progress-bar-fill" id="progressFill" style="width: 0%;">
-                    <span class="progress-star" id="progressStar" style="display:none;">⭐</span>
-                </div>
-            </div>
-            <div class="progress-label" id="progressLabel">0 of 5 selections</div>
-            <div class="progress-extra" id="progressExtra" style="display:none; text-align:center; font-size: 0.78rem; color: var(--color-muted); margin-top: 0.25rem;"></div>
-        </div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-        <div class="level-label" id="levelLabel">{% if level_order[0] == 'Client' %}Patient{% else %}{{ level_order[0] }}{% endif %} Level</div>
-
-        <h2 class="question-text">
-            Which do you think is more important for increasing delivery of smoking cessation treatment in community mental health settings?
-        </h2>
-        <p class="question-subtext">Click on one strategy below to make your choice</p>
-
-        <!-- Strategy pair -->
-        <div class="pair-container" id="pairContainer">
-            <div class="strategy-card card-enter" id="cardA" onclick="vote('A')">
-                <span class="strategy-card__text" id="textA">Loading...</span>
-                <span class="strategy-card__info" id="infoA" style="display:none;" onclick="event.stopPropagation(); toggleTooltip('A')">i</span>
-                <div class="tooltip" id="tooltipA"></div>
-            </div>
-            <div class="strategy-card card-enter" id="cardB" onclick="vote('B')">
-                <span class="strategy-card__text" id="textB">Loading...</span>
-                <span class="strategy-card__info" id="infoB" style="display:none;" onclick="event.stopPropagation(); toggleTooltip('B')">i</span>
-                <div class="tooltip" id="tooltipB"></div>
-            </div>
-        </div>
-
-        <!-- Can't decide -->
-        <div class="cant-decide-section">
-            <button class="cant-decide-btn" onclick="toggleCantDecide()">I Can't Decide</button>
-            <div class="cant-decide-options" id="cantDecideOptions">
-                <button type="button" class="cant-decide-reason" onclick="cantDecide('too_similar')">Both seem similar</button>
-                <button type="button" class="cant-decide-reason" onclick="cantDecide('unclear')">One or both are unclear</button>
-                <button type="button" class="cant-decide-reason" onclick="openCantDecideOtherModal()">Other</button>
-            </div>
-        </div>
-
-        <!-- Idea submission -->
-        <div class="idea-section">
-            <div class="idea-section__title">Have Your Own Idea?</div>
-            <div class="idea-section__desc">Share a strategy for increasing delivery of smoking cessation treatment</div>
-            <textarea class="idea-textarea" id="ideaText" placeholder="Add your own idea here..."
-                      maxlength="1000"></textarea>
-            <div>
-                <button class="idea-submit-btn" id="ideaSubmitBtn" onclick="submitIdea()">Submit My Idea</button>
-            </div>
-            <div class="idea-warning">
-                Please do not include any personal identifying information. Your idea will be shared with other participants.
-                The study team may edit your idea for consistency.
-            </div>
-            <div class="idea-success" id="ideaSuccess">✓ Your idea has been submitted for review. Thank you!</div>
-        </div>
-    </main>
+    <!-- Idea submission -->
+    <div class="idea-section">
+      <div class="idea-section__title">Have Your Own Idea?</div>
+      <div class="idea-section__desc">
+        Share a strategy for increasing delivery of smoking cessation treatment
+      </div>
+      <textarea
+        class="idea-textarea"
+        id="ideaText"
+        placeholder="Add your own idea here..."
+        maxlength="1000"
+      ></textarea>
+      <div>
+        <button
+          class="idea-submit-btn"
+          id="ideaSubmitBtn"
+          onclick="submitIdea()"
+        >
+          Submit My Idea
+        </button>
+      </div>
+      <div class="idea-warning">
+        Please do not include any personal identifying information. Your idea
+        will be shared with other participants. The study team may edit your
+        idea for consistency.
+      </div>
+      <div class="idea-success" id="ideaSuccess">
+        ✓ Your idea has been submitted for review. Thank you!
+      </div>
+    </div>
+  </main>
 </div>
-
 
 <!-- ═══ CELEBRATION MODAL ═══ -->
 <div class="modal-backdrop" id="celebrationModal">
-    <div class="modal">
-        <div class="modal__emoji">🎉</div>
-        <h3 class="modal__title">You've hit the goal!</h3>
-        <p class="modal__text" id="celebrationText">
-            Great work on the <strong id="celebrationLevel">Provider</strong> level.
-            Every additional comparison makes the results stronger.
-            Keep going here or try another level — whatever feels good.
-        </p>
-        <div>
-            <button class="modal__btn" onclick="closeCelebration()">Continue</button>
-        </div>
+  <div class="modal">
+    <div class="modal__emoji">🎉</div>
+    <h3 class="modal__title">You've hit the goal!</h3>
+    <p class="modal__text" id="celebrationText">
+      Great work on the <strong id="celebrationLevel">Provider</strong> level.
+      Every additional comparison makes the results stronger. Keep going here or
+      try another level — whatever feels good.
+    </p>
+    <div class="modal__actions modal__actions--center">
+      <button
+        class="modal__btn modal__btn--outline"
+        onclick="stayInCurrentLevel()"
+      >
+        Stay in current level
+      </button>
+      <button
+        class="modal__btn modal__btn--advance"
+        onclick="advanceToNextLevel()"
+      >
+        Advance to next level →
+      </button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ ALL LEVELS COMPLETE MODAL ═══ -->
+<div class="modal-backdrop modal-backdrop--strong" id="allLevelsCompleteModal">
+  <div class="modal modal--complete">
+    <div class="modal__emoji modal__emoji--success">✅</div>
+    <h3 class="modal__title">Thank you!</h3>
+    <p class="modal__text">
+      Thank you for your time and effort on this survey. You've now made
+      selections for every level.
+    </p>
+    <p class="modal__text">
+      If you'd like to continue, feel free to answer questions at any level.
+      Every additional comparison makes the results stronger.
+    </p>
+    <p class="modal__text modal__text--no-margin">
+      To exit the survey, simply close the web page. You can always return if
+      you want to answer more questions.
+    </p>
+    <div class="modal__actions modal__actions--center">
+      <button class="modal__btn" onclick="closeAllLevelsCompleteModal()">
+        Keep answering
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- Other reason (can't decide) -->
-<div class="modal-backdrop" id="cantDecideOtherModal" role="dialog" aria-modal="true" aria-labelledby="cantDecideOtherTitle">
-    <div class="modal modal--compact">
-        <h3 class="modal__title" id="cantDecideOtherTitle">Other</h3>
-        <p class="modal__text">Briefly describe why you can’t decide between these strategies.</p>
-        <textarea class="idea-textarea" id="cantDecideOtherText" maxlength="2000" rows="4"
-                  placeholder="Type your reason here..." aria-label="Reason you cannot decide"></textarea>
-        <div class="modal__actions">
-            <button type="button" class="modal__btn modal__btn--outline" onclick="closeCantDecideOtherModal()">Cancel</button>
-            <button type="button" class="modal__btn" onclick="submitCantDecideOther()">Submit</button>
-        </div>
+<div
+  class="modal-backdrop"
+  id="cantDecideOtherModal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="cantDecideOtherTitle"
+>
+  <div class="modal modal--compact">
+    <h3 class="modal__title" id="cantDecideOtherTitle">Other</h3>
+    <p class="modal__text">
+      Briefly describe why you can’t decide between these strategies.
+    </p>
+    <textarea
+      class="idea-textarea"
+      id="cantDecideOtherText"
+      maxlength="2000"
+      rows="4"
+      placeholder="Type your reason here..."
+      aria-label="Reason you cannot decide"
+    ></textarea>
+    <div class="modal__actions">
+      <button
+        type="button"
+        class="modal__btn modal__btn--outline"
+        onclick="closeCantDecideOtherModal()"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="modal__btn"
+        onclick="submitCantDecideOther()"
+      >
+        Submit
+      </button>
     </div>
+  </div>
 </div>
 
-{% include 'partials/quick_guide.html' %}
-
-{% endblock %}
-
-{% block scripts %}
+{% include 'partials/quick_guide.html' %} {% endblock %} {% block scripts %}
 <script>
-    // ── State ──
-    const SESSION_ID = '{{ session_id }}';
-    const ROLE = '{{ role }}';
-    let currentLevel = '{{ level_order[0] }}';
-    let currentPair = { a: null, b: null };
-    let currentAlgoLogId = null;
-    let levelCounts = {};
-    let celebratedLevels = new Set();
+  // ── State ──
+  const SESSION_ID = '{{ session_id }}';
+  const ROLE = '{{ role }}';
+  let currentLevel = '{{ level_order[0] }}';
+  let currentPair = { a: null, b: null };
+  let currentAlgoLogId = null;
+  let levelCounts = {};
+  let celebratedLevels = new Set();
+  let hasShownAllLevelsCompleteModal = false;
 
-    // Level color map for progress bar
-    const LEVEL_FILL_CLASS = {
-        'Provider': 'progress-bar-fill--provider',
-        'Organization': 'progress-bar-fill--organization',
-        'System': 'progress-bar-fill--system',
-        'Client': 'progress-bar-fill--client',
-    };
+  // Level color map for progress bar
+  const LEVEL_FILL_CLASS = {
+      'Provider': 'progress-bar-fill--provider',
+      'Organization': 'progress-bar-fill--organization',
+      'System': 'progress-bar-fill--system',
+      'Client': 'progress-bar-fill--client',
+  };
 
-    /** Display name for the active tab (API still uses "Client"). */
-    function implementationLevelDisplayName(level) {
-        return level === 'Client' ? 'Patient' : level;
-    }
+  const LEVEL_LABEL_CLASS = {
+      'Provider': 'level-label--provider',
+      'Organization': 'level-label--organization',
+      'System': 'level-label--system',
+      'Client': 'level-label--client',
+  };
 
-    function closeNavbarMenu() {
-        const menu = document.getElementById('navbarMobileMenu');
-        const backdrop = document.getElementById('navbarMobileBackdrop');
-        const toggle = document.getElementById('navbarMenuToggle');
-        if (!menu || !backdrop || !toggle) return;
-        menu.classList.remove('show');
-        backdrop.classList.remove('show');
-        toggle.setAttribute('aria-expanded', 'false');
-        toggle.setAttribute('aria-label', 'Open menu');
-        document.body.classList.remove('navbar-menu-open');
-    }
+  const LEVEL_INFO_CLASS = {
+      'Provider': 'strategy-card__info--provider',
+      'Organization': 'strategy-card__info--organization',
+      'System': 'strategy-card__info--system',
+      'Client': 'strategy-card__info--client',
+  };
+  const LEVEL_ORDER = [{% for level in level_order %}'{{ level }}'{% if not loop.last %}, {% endif %}{% endfor %}];
 
-    function toggleNavbarMenu() {
-        const menu = document.getElementById('navbarMobileMenu');
-        const backdrop = document.getElementById('navbarMobileBackdrop');
-        const toggle = document.getElementById('navbarMenuToggle');
-        if (!menu || !backdrop || !toggle) return;
-        const open = !menu.classList.contains('show');
-        menu.classList.toggle('show', open);
-        backdrop.classList.toggle('show', open);
-        toggle.setAttribute('aria-expanded', open);
-        toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
-        document.body.classList.toggle('navbar-menu-open', open);
-    }
+  /** Display name for the active tab (API still uses "Client"). */
+  function implementationLevelDisplayName(level) {
+      return level === 'Client' ? 'Patient' : level;
+  }
 
-    function scrollToVoteSection() {
-        const el = document.getElementById('pairContainer');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        closeNavbarMenu();
-    }
+  function updateLevelLabelStyle(level) {
+      const label = document.getElementById('levelLabel');
+      if (!label) return;
+      label.className = 'level-label';
+      label.classList.add(LEVEL_LABEL_CLASS[level] || 'level-label--provider');
+  }
 
-    // ── Init ──
-    document.addEventListener('DOMContentLoaded', async () => {
-        const toggle = document.getElementById('navbarMenuToggle');
-        const backdrop = document.getElementById('navbarMobileBackdrop');
-        if (toggle) toggle.addEventListener('click', toggleNavbarMenu);
-        if (backdrop) backdrop.addEventListener('click', closeNavbarMenu);
-        const voteBtn = document.getElementById('voteNavBtn');
-        const voteMobile = document.getElementById('voteNavBtnMobile');
-        if (voteBtn) voteBtn.addEventListener('click', scrollToVoteSection);
-        if (voteMobile) voteMobile.addEventListener('click', scrollToVoteSection);
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeNavbarMenu();
-        });
+  function updateInfoIconStyle(level) {
+      const infoClass = LEVEL_INFO_CLASS[level] || 'strategy-card__info--provider';
+      ['A', 'B'].forEach((side) => {
+          const icon = document.getElementById('info' + side);
+          if (!icon) return;
+          icon.className = 'strategy-card__info';
+          icon.classList.add(infoClass);
+      });
+  }
 
-        // Load initial counts
-        const res = await api('/api/level-counts');
-        levelCounts = res || {};
-        updateProgress();
-        loadPair();
+  function areAllLevelsComplete() {
+      return LEVEL_ORDER.every((level) => (levelCounts[level] || 0) >= 5);
+  }
 
-        // Heartbeat every 30s
-        setInterval(() => api('/api/session-heartbeat', {}), 30000);
+  function closeNavbarMenu() {
+      const menu = document.getElementById('navbarMobileMenu');
+      const backdrop = document.getElementById('navbarMobileBackdrop');
+      const toggle = document.getElementById('navbarMenuToggle');
+      if (!menu || !backdrop || !toggle) return;
+      menu.classList.remove('show');
+      backdrop.classList.remove('show');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Open menu');
+      document.body.classList.remove('navbar-menu-open');
+  }
 
-        // End session on close
-        window.addEventListener('beforeunload', () => {
-            navigator.sendBeacon('/api/end-session', JSON.stringify({}));
-        });
-    });
+  function toggleNavbarMenu() {
+      const menu = document.getElementById('navbarMobileMenu');
+      const backdrop = document.getElementById('navbarMobileBackdrop');
+      const toggle = document.getElementById('navbarMenuToggle');
+      if (!menu || !backdrop || !toggle) return;
+      const open = !menu.classList.contains('show');
+      menu.classList.toggle('show', open);
+      backdrop.classList.toggle('show', open);
+      toggle.setAttribute('aria-expanded', open);
+      toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      document.body.classList.toggle('navbar-menu-open', open);
+  }
 
-    // Clears WebKit/Android "sticky :hover" after touch — same DOM nodes are reused for each pair.
-    function resetStrategyCardPointerState() {
-        const a = document.getElementById('cardA');
-        const b = document.getElementById('cardB');
-        if (!a || !b) return;
-        [a, b].forEach((el) => { el.style.pointerEvents = 'none'; });
-        void a.offsetWidth;
-        requestAnimationFrame(() => {
-            [a, b].forEach((el) => { el.style.pointerEvents = ''; });
-        });
-    }
+  function scrollToVoteSection() {
+      const el = document.getElementById('pairContainer');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      closeNavbarMenu();
+  }
 
-    // ── Load pair ──
-    async function loadPair() {
-        const container = document.getElementById('pairContainer');
-        // Drop focus from the previous pair so mobile browsers don't keep a "stuck" highlight on A/B.
-        const ae = document.activeElement;
-        if (ae && typeof ae.blur === 'function') ae.blur();
+  // ── Init ──
+  document.addEventListener('DOMContentLoaded', async () => {
+      const toggle = document.getElementById('navbarMenuToggle');
+      const backdrop = document.getElementById('navbarMobileBackdrop');
+      if (toggle) toggle.addEventListener('click', toggleNavbarMenu);
+      if (backdrop) backdrop.addEventListener('click', closeNavbarMenu);
+      const voteBtn = document.getElementById('voteNavBtn');
+      const voteMobile = document.getElementById('voteNavBtnMobile');
+      if (voteBtn) voteBtn.addEventListener('click', scrollToVoteSection);
+      if (voteMobile) voteMobile.addEventListener('click', scrollToVoteSection);
+      document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') closeNavbarMenu();
+      });
 
-        container.style.opacity = '0.4';
+      // Load initial counts
+      const res = await api('/api/level-counts');
+      levelCounts = res || {};
+      updateLevelLabelStyle(currentLevel);
+      updateInfoIconStyle(currentLevel);
+      updateProgress();
+      loadPair();
+      if (areAllLevelsComplete()) showAllLevelsCompleteModal();
 
-        let res;
-        try {
-            res = await api('/api/get-pair', { level: currentLevel });
-        } finally {
-            container.style.opacity = '1';
-        }
+      // Heartbeat every 30s
+      setInterval(() => api('/api/session-heartbeat', {}), 30000);
 
-        if (res.error) {
-            document.getElementById('textA').textContent = 'Could not load strategies';
-            document.getElementById('textB').textContent = res.error;
-            showToast(res.error, 'error', 5000);
-            return;
-        }
+      // End session on close
+      window.addEventListener('beforeunload', () => {
+          navigator.sendBeacon('/api/end-session', JSON.stringify({}));
+      });
+  });
 
-        currentPair.a = res.strategy_a;
-        currentPair.b = res.strategy_b;
-        currentAlgoLogId = res.algo_log_id || null;
+  // Clears WebKit/Android "sticky :hover" after touch — same DOM nodes are reused for each pair.
+  function resetStrategyCardPointerState() {
+      const a = document.getElementById('cardA');
+      const b = document.getElementById('cardB');
+      if (!a || !b) return;
+      [a, b].forEach((el) => { el.style.pointerEvents = 'none'; });
+      void a.offsetWidth;
+      requestAnimationFrame(() => {
+          [a, b].forEach((el) => { el.style.pointerEvents = ''; });
+      });
+  }
 
-        // Set text
-        document.getElementById('textA').textContent = res.strategy_a.choice;
-        document.getElementById('textB').textContent = res.strategy_b.choice;
+  // ── Load pair ──
+  async function loadPair() {
+      const container = document.getElementById('pairContainer');
+      // Drop focus from the previous pair so mobile browsers don't keep a "stuck" highlight on A/B.
+      const ae = document.activeElement;
+      if (ae && typeof ae.blur === 'function') ae.blur();
 
-        // Help text info icons
-        setupInfoIcon('A', res.strategy_a.help_text);
-        setupInfoIcon('B', res.strategy_b.help_text);
+      container.style.opacity = '0.4';
 
-        // Reset card styles
-        document.getElementById('cardA').classList.remove('selected');
-        document.getElementById('cardB').classList.remove('selected');
-        resetStrategyCardPointerState();
+      let res;
+      try {
+          res = await api('/api/get-pair', { level: currentLevel });
+      } finally {
+          container.style.opacity = '1';
+      }
 
-        // Animate in
-        container.style.opacity = '1';
-        document.getElementById('cardA').classList.add('card-enter');
-        document.getElementById('cardB').classList.add('card-enter');
-        setTimeout(() => {
-            document.getElementById('cardA').classList.remove('card-enter');
-            document.getElementById('cardB').classList.remove('card-enter');
-        }, 400);
+      if (res.error) {
+          document.getElementById('textA').textContent = 'Could not load strategies';
+          document.getElementById('textB').textContent = res.error;
+          showToast(res.error, 'error', 5000);
+          return;
+      }
 
-        // Close cant decide options
-        document.getElementById('cantDecideOptions').classList.remove('show');
-        closeCantDecideOtherModal();
-    }
+      currentPair.a = res.strategy_a;
+      currentPair.b = res.strategy_b;
+      currentAlgoLogId = res.algo_log_id || null;
 
-    function setupInfoIcon(side, helpText) {
-        const icon = document.getElementById('info' + side);
-        const tooltip = document.getElementById('tooltip' + side);
-        if (helpText && helpText.trim()) {
-            icon.style.display = 'flex';
-            tooltip.textContent = helpText;
-        } else {
-            icon.style.display = 'none';
-            tooltip.textContent = '';
-        }
-        tooltip.classList.remove('visible');
-    }
+      // Set text
+      document.getElementById('textA').textContent = res.strategy_a.choice;
+      document.getElementById('textB').textContent = res.strategy_b.choice;
 
-    function toggleTooltip(side) {
-        const tooltip = document.getElementById('tooltip' + side);
-        const other = document.getElementById('tooltip' + (side === 'A' ? 'B' : 'A'));
-        other.classList.remove('visible');
-        tooltip.classList.toggle('visible');
-    }
+      // Help text info icons
+      setupInfoIcon('A', res.strategy_a.help_text);
+      setupInfoIcon('B', res.strategy_b.help_text);
 
-    // Close tooltips when clicking elsewhere
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.strategy-card__info') && !e.target.closest('.tooltip')) {
-            document.querySelectorAll('.tooltip').forEach(t => t.classList.remove('visible'));
-        }
-    });
+      // Reset card styles
+      document.getElementById('cardA').classList.remove('selected');
+      document.getElementById('cardB').classList.remove('selected');
+      resetStrategyCardPointerState();
 
-    // ── Vote ──
-    async function vote(choice) {
-        const winner = choice === 'A' ? currentPair.a : currentPair.b;
-        const loser = choice === 'A' ? currentPair.b : currentPair.a;
+      // Animate in
+      container.style.opacity = '1';
+      document.getElementById('cardA').classList.add('card-enter');
+      document.getElementById('cardB').classList.add('card-enter');
+      setTimeout(() => {
+          document.getElementById('cardA').classList.remove('card-enter');
+          document.getElementById('cardB').classList.remove('card-enter');
+      }, 400);
 
-        if (!winner || !loser) return;
+      // Close cant decide options
+      document.getElementById('cantDecideOptions').classList.remove('show');
+      closeCantDecideOtherModal();
+  }
 
-        // Visual feedback
-        const card = document.getElementById('card' + choice);
-        card.classList.add('selected');
+  function setupInfoIcon(side, helpText) {
+      const icon = document.getElementById('info' + side);
+      const tooltip = document.getElementById('tooltip' + side);
+      if (helpText && helpText.trim()) {
+          icon.style.display = 'flex';
+          tooltip.textContent = helpText;
+      } else {
+          icon.style.display = 'none';
+          tooltip.textContent = '';
+      }
+      tooltip.classList.remove('visible');
+  }
 
-        const res = await api('/api/vote', {
-            winner_id: winner.id,
-            loser_id: loser.id,
-            level: currentLevel,
-            algo_log_id: currentAlgoLogId,
-        });
+  function toggleTooltip(side) {
+      const tooltip = document.getElementById('tooltip' + side);
+      const other = document.getElementById('tooltip' + (side === 'A' ? 'B' : 'A'));
+      other.classList.remove('visible');
+      tooltip.classList.toggle('visible');
+  }
 
-        if (res.success) {
-            levelCounts = res.level_counts;
-            updateProgress();
+  // Close tooltips when clicking elsewhere
+  document.addEventListener('click', (e) => {
+      if (!e.target.closest('.strategy-card__info') && !e.target.closest('.tooltip')) {
+          document.querySelectorAll('.tooltip').forEach(t => t.classList.remove('visible'));
+      }
+  });
 
-            // Check celebration
-            const count = levelCounts[currentLevel] || 0;
-            if (count === 5 && !celebratedLevels.has(currentLevel)) {
-                celebratedLevels.add(currentLevel);
-                showCelebration();
-            }
+  // ── Vote ──
+  async function vote(choice) {
+      const winner = choice === 'A' ? currentPair.a : currentPair.b;
+      const loser = choice === 'A' ? currentPair.b : currentPair.a;
 
-            // Load next pair after brief delay
-            setTimeout(() => loadPair(), 350);
-        }
-    }
+      if (!winner || !loser) return;
 
-    // ── Can't Decide ──
-    function toggleCantDecide() {
-        document.getElementById('cantDecideOptions').classList.toggle('show');
-    }
+      // Visual feedback
+      const card = document.getElementById('card' + choice);
+      card.classList.add('selected');
 
-    async function cantDecide(reason) {
-        if (!currentPair.a || !currentPair.b) return;
+      const res = await api('/api/vote', {
+          winner_id: winner.id,
+          loser_id: loser.id,
+          level: currentLevel,
+          algo_log_id: currentAlgoLogId,
+      });
 
-        await api('/api/cant-decide', {
-            strategy_a_id: currentPair.a.id,
-            strategy_b_id: currentPair.b.id,
-            reason: reason,
-            level: currentLevel,
-            algo_log_id: currentAlgoLogId,
-        });
+      if (res.success) {
+          levelCounts = res.level_counts;
+          updateProgress();
 
-        const msg = reason === 'too_similar'
-            ? 'Got it — loading a new pair'
-            : 'Noted — loading a new pair';
-        showToast(msg);
-        loadPair();
-    }
+          if (areAllLevelsComplete()) {
+              showAllLevelsCompleteModal();
+              return;
+          }
 
-    function openCantDecideOtherModal() {
-        if (!currentPair.a || !currentPair.b) return;
-        document.getElementById('cantDecideOptions').classList.remove('show');
-        document.getElementById('cantDecideOtherText').value = '';
-        document.getElementById('cantDecideOtherModal').classList.add('show');
-        setTimeout(() => {
-            const ta = document.getElementById('cantDecideOtherText');
-            if (ta) ta.focus();
-        }, 100);
-    }
+          // Check celebration
+          const count = levelCounts[currentLevel] || 0;
+          let pauseForChoice = false;
+          if (count === 5 && !celebratedLevels.has(currentLevel)) {
+              celebratedLevels.add(currentLevel);
+              showCelebration();
+              pauseForChoice = true;
+          }
 
-    function closeCantDecideOtherModal() {
-        document.getElementById('cantDecideOtherModal').classList.remove('show');
-    }
+          // Load next pair after brief delay
+          if (!pauseForChoice) {
+              setTimeout(() => loadPair(), 350);
+          }
+      }
+  }
 
-    async function submitCantDecideOther() {
-        if (!currentPair.a || !currentPair.b) return;
-        const text = document.getElementById('cantDecideOtherText').value.trim();
-        if (!text) {
-            showToast('Please enter a reason', 'error');
-            return;
-        }
-        const res = await api('/api/cant-decide', {
-            strategy_a_id: currentPair.a.id,
-            strategy_b_id: currentPair.b.id,
-            reason: 'other',
-            other_reason: text,
-            level: currentLevel,
-            algo_log_id: currentAlgoLogId,
-        });
-        if (res.error) {
-            showToast(res.error, 'error');
-            return;
-        }
-        closeCantDecideOtherModal();
-        showToast('Noted — loading a new pair');
-        loadPair();
-    }
+  // ── Can't Decide ──
+  function toggleCantDecide() {
+      document.getElementById('cantDecideOptions').classList.toggle('show');
+  }
 
-    // ── Submit idea ──
-    async function submitIdea() {
-        const text = document.getElementById('ideaText').value.trim();
-        if (!text) {
-            showToast('Please enter your idea first', 'error');
-            return;
-        }
+  async function cantDecide(reason) {
+      if (!currentPair.a || !currentPair.b) return;
 
-        document.getElementById('ideaSubmitBtn').disabled = true;
-        const res = await api('/api/submit-idea', { idea_text: text });
+      await api('/api/cant-decide', {
+          strategy_a_id: currentPair.a.id,
+          strategy_b_id: currentPair.b.id,
+          reason: reason,
+          level: currentLevel,
+          algo_log_id: currentAlgoLogId,
+      });
 
-        if (res.success) {
-            document.getElementById('ideaText').value = '';
-            document.getElementById('ideaSuccess').style.display = 'block';
-            showToast('Your idea has been submitted!', 'success');
-            setTimeout(() => {
-                document.getElementById('ideaSuccess').style.display = 'none';
-            }, 5000);
-        } else {
-            showToast(res.error || 'Failed to submit', 'error');
-        }
-        document.getElementById('ideaSubmitBtn').disabled = false;
-    }
+      const msg = reason === 'too_similar'
+          ? 'Got it — loading a new pair'
+          : 'Noted — loading a new pair';
+      showToast(msg);
+      loadPair();
+  }
 
-    // ── Level switching ──
-    function switchLevel(level, btn) {
-        currentLevel = level;
+  function openCantDecideOtherModal() {
+      if (!currentPair.a || !currentPair.b) return;
+      document.getElementById('cantDecideOptions').classList.remove('show');
+      document.getElementById('cantDecideOtherText').value = '';
+      document.getElementById('cantDecideOtherModal').classList.add('show');
+      setTimeout(() => {
+          const ta = document.getElementById('cantDecideOtherText');
+          if (ta) ta.focus();
+      }, 100);
+  }
 
-        // Update active button
-        document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+  function closeCantDecideOtherModal() {
+      document.getElementById('cantDecideOtherModal').classList.remove('show');
+  }
 
-        // Update label
-        document.getElementById('levelLabel').textContent = implementationLevelDisplayName(level) + ' Level';
+  async function submitCantDecideOther() {
+      if (!currentPair.a || !currentPair.b) return;
+      const text = document.getElementById('cantDecideOtherText').value.trim();
+      if (!text) {
+          showToast('Please enter a reason', 'error');
+          return;
+      }
+      const res = await api('/api/cant-decide', {
+          strategy_a_id: currentPair.a.id,
+          strategy_b_id: currentPair.b.id,
+          reason: 'other',
+          other_reason: text,
+          level: currentLevel,
+          algo_log_id: currentAlgoLogId,
+      });
+      if (res.error) {
+          showToast(res.error, 'error');
+          return;
+      }
+      closeCantDecideOtherModal();
+      showToast('Noted — loading a new pair');
+      loadPair();
+  }
 
-        // Update progress bar
-        updateProgress();
+  // ── Submit idea ──
+  async function submitIdea() {
+      const text = document.getElementById('ideaText').value.trim();
+      if (!text) {
+          showToast('Please enter your idea first', 'error');
+          return;
+      }
 
-        // Load new pair
-        loadPair();
-    }
+      document.getElementById('ideaSubmitBtn').disabled = true;
+      const res = await api('/api/submit-idea', { idea_text: text });
 
-    // ── Progress ──
-    function updateProgress() {
-        const count = levelCounts[currentLevel] || 0;
-        const pct = Math.min(count / 5, 1) * 100;
-        const fill = document.getElementById('progressFill');
-        const star = document.getElementById('progressStar');
-        const label = document.getElementById('progressLabel');
-        const extra = document.getElementById('progressExtra');
+      if (res.success) {
+          document.getElementById('ideaText').value = '';
+          document.getElementById('ideaSuccess').style.display = 'block';
+          showToast('Your idea has been submitted!', 'success');
+          setTimeout(() => {
+              document.getElementById('ideaSuccess').style.display = 'none';
+          }, 5000);
+      } else {
+          showToast(res.error || 'Failed to submit', 'error');
+      }
+      document.getElementById('ideaSubmitBtn').disabled = false;
+  }
 
-        // Remove all level classes
-        fill.className = 'progress-bar-fill';
-        // Add current level class
-        const cls = LEVEL_FILL_CLASS[currentLevel] || 'progress-bar-fill--provider';
-        fill.classList.add(cls);
+  // ── Level switching ──
+  function switchLevel(level, btn) {
+      currentLevel = level;
 
-        fill.style.width = pct + '%';
+      // Update active button
+      document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
 
-        if (count >= 5) {
-            star.style.display = 'inline';
-            star.classList.add('pop');
-            setTimeout(() => star.classList.remove('pop'), 500);
-            label.textContent = '✓ Level goal reached!';
-            // Phase 2: show ongoing vote counter
-            extra.style.display = 'block';
-            extra.textContent = count + ' total votes on this level';
-        } else {
-            star.style.display = 'none';
-            label.textContent = count + ' of 5 selections';
-            extra.style.display = 'none';
-        }
+      // Update label
+      document.getElementById('levelLabel').textContent = implementationLevelDisplayName(level) + ' Level';
+      updateLevelLabelStyle(level);
+      updateInfoIconStyle(level);
 
-        // Update level completion indicators
-        document.querySelectorAll('.level-btn').forEach(btn => {
-            const lvl = btn.dataset.level;
-            if ((levelCounts[lvl] || 0) >= 5) {
-                btn.classList.add('completed');
-            }
-        });
-    }
+      // Update progress bar
+      updateProgress();
 
-    // ── Celebration ──
-    function showCelebration() {
-        document.getElementById('celebrationLevel').textContent = implementationLevelDisplayName(currentLevel);
-        document.getElementById('celebrationModal').classList.add('show');
-    }
+      // Load new pair
+      loadPair();
+  }
 
-    function closeCelebration() {
-        document.getElementById('celebrationModal').classList.remove('show');
-    }
+  // ── Progress ──
+  function updateProgress() {
+      const count = levelCounts[currentLevel] || 0;
+      const pct = Math.min(count / 5, 1) * 100;
+      const fill = document.getElementById('progressFill');
+      const star = document.getElementById('progressStar');
+      const label = document.getElementById('progressLabel');
+      const extra = document.getElementById('progressExtra');
 
-    // ── Quick Guide ──
-    function openQuickGuide() {
-        closeNavbarMenu();
-        document.getElementById('quickGuide').classList.add('show');
-    }
+      // Remove all level classes
+      fill.className = 'progress-bar-fill';
+      // Add current level class
+      const cls = LEVEL_FILL_CLASS[currentLevel] || 'progress-bar-fill--provider';
+      fill.classList.add(cls);
 
-    function closeQuickGuide() {
-        document.getElementById('quickGuide').classList.remove('show');
-    }
+      fill.style.width = pct + '%';
 
-    // Close on backdrop click
-    document.getElementById('quickGuide').addEventListener('click', function(e) {
-        if (e.target === this) closeQuickGuide();
-    });
-    document.getElementById('celebrationModal').addEventListener('click', function(e) {
-        if (e.target === this) closeCelebration();
-    });
-    document.getElementById('cantDecideOtherModal').addEventListener('click', function(e) {
-        if (e.target === this) closeCantDecideOtherModal();
-    });
+      if (count >= 5) {
+          star.style.display = 'inline';
+          star.classList.add('pop');
+          setTimeout(() => star.classList.remove('pop'), 500);
+          label.textContent = '✓ Level goal reached!';
+          // Phase 2: show ongoing vote counter
+          extra.style.display = 'block';
+          extra.textContent = count + ' total votes on this level';
+      } else {
+          star.style.display = 'none';
+          label.textContent = count + ' of 5 selections';
+          extra.style.display = 'none';
+      }
 
-    // ── Accordion ──
-    function toggleAccordion(trigger) {
-        const body = trigger.nextElementSibling;
-        const isOpen = body.classList.contains('open');
+      // Update level completion indicators
+      document.querySelectorAll('.level-btn').forEach(btn => {
+          const lvl = btn.dataset.level;
+          if ((levelCounts[lvl] || 0) >= 5) {
+              btn.classList.add('completed');
+          }
+      });
+  }
 
-        // Close all
-        document.querySelectorAll('.accordion-body').forEach(b => b.classList.remove('open'));
-        document.querySelectorAll('.accordion-trigger').forEach(t => t.classList.remove('open'));
+  // ── Celebration ──
+  function showCelebration() {
+      document.getElementById('celebrationLevel').textContent = implementationLevelDisplayName(currentLevel);
+      document.getElementById('celebrationModal').classList.add('show');
+  }
 
-        if (!isOpen) {
-            body.classList.add('open');
-            trigger.classList.add('open');
-        }
-    }
+  function closeCelebration() {
+      document.getElementById('celebrationModal').classList.remove('show');
+  }
 
-    // ── Onion Diagram ──
-    const ONION_DESCS = {
-        system: 'This refers to strategies that would happen <strong>outside</strong> the walls of an individual healthcare organization or would have effects outside of one organization.',
-        organization: 'This refers to strategies that would happen <strong>inside</strong> the walls of an individual healthcare organization.',
-        provider: 'This refers to strategies that would involve or impact <strong>healthcare providers</strong>.',
-        patient: 'This refers to strategies that would involve or impact <strong>healthcare patients</strong>.',
-    };
+  function showAllLevelsCompleteModal() {
+      if (hasShownAllLevelsCompleteModal) return;
+      hasShownAllLevelsCompleteModal = true;
+      document.getElementById('allLevelsCompleteModal').classList.add('show');
+  }
 
-    function showOnionDesc(level) {
-        document.getElementById('onionDesc').innerHTML = ONION_DESCS[level] || '';
-    }
+  function closeAllLevelsCompleteModal() {
+      document.getElementById('allLevelsCompleteModal').classList.remove('show');
+      loadPair();
+  }
+
+  function stayInCurrentLevel() {
+      closeCelebration();
+      loadPair();
+  }
+
+  function advanceToNextLevel() {
+      closeCelebration();
+      const currentIndex = LEVEL_ORDER.indexOf(currentLevel);
+      const nextLevel = currentIndex >= 0 ? LEVEL_ORDER[currentIndex + 1] : null;
+
+      if (!nextLevel) {
+          showToast('You are already on the last level. Staying on current level.');
+          loadPair();
+          return;
+      }
+
+      const nextLevelBtn = document.querySelector('.level-btn[data-level="' + nextLevel + '"]');
+      if (nextLevelBtn) {
+          switchLevel(nextLevel, nextLevelBtn);
+      } else {
+          currentLevel = nextLevel;
+          document.getElementById('levelLabel').textContent = implementationLevelDisplayName(nextLevel) + ' Level';
+          updateLevelLabelStyle(nextLevel);
+          updateInfoIconStyle(nextLevel);
+          updateProgress();
+          loadPair();
+      }
+  }
+
+  // ── Quick Guide ──
+  function openQuickGuide() {
+      closeNavbarMenu();
+      document.getElementById('quickGuide').classList.add('show');
+  }
+
+  function stopQuickGuideMedia() {
+      const quickGuide = document.getElementById('quickGuide');
+      if (!quickGuide) return;
+
+      quickGuide.querySelectorAll('video').forEach(video => {
+          try {
+              video.pause();
+              video.currentTime = 0;
+          } catch (_) {
+              // Ignore media stop errors in unsupported states.
+          }
+      });
+
+      quickGuide.querySelectorAll('iframe').forEach(frame => {
+          // Resetting iframe src reliably stops embedded media playback.
+          const src = frame.getAttribute('src');
+          frame.setAttribute('src', '');
+          if (src) frame.setAttribute('src', src);
+      });
+  }
+
+  function closeQuickGuide() {
+      stopQuickGuideMedia();
+      document.getElementById('quickGuide').classList.remove('show');
+  }
+
+  // Close on backdrop click
+  document.getElementById('quickGuide').addEventListener('click', function(e) {
+      if (e.target === this) closeQuickGuide();
+  });
+  document.getElementById('celebrationModal').addEventListener('click', function(e) {
+      if (e.target === this) stayInCurrentLevel();
+  });
+  document.getElementById('allLevelsCompleteModal').addEventListener('click', function(e) {
+      if (e.target === this) closeAllLevelsCompleteModal();
+  });
+  document.getElementById('cantDecideOtherModal').addEventListener('click', function(e) {
+      if (e.target === this) closeCantDecideOtherModal();
+  });
+
+  // ── Accordion ──
+  function toggleAccordion(trigger) {
+      const body = trigger.nextElementSibling;
+      const isOpen = body.classList.contains('open');
+
+      // Close all
+      document.querySelectorAll('.accordion-body').forEach(b => b.classList.remove('open'));
+      document.querySelectorAll('.accordion-trigger').forEach(t => t.classList.remove('open'));
+
+      if (!isOpen) {
+          body.classList.add('open');
+          trigger.classList.add('open');
+      }
+  }
+
+  // ── Onion Diagram ──
+  const ONION_DESCS = {
+      system: 'This refers to strategies that would happen <strong>outside</strong> the walls of an individual healthcare organization or would have effects outside of one organization.',
+      organization: 'This refers to strategies that would happen <strong>inside</strong> the walls of an individual healthcare organization.',
+      provider: 'This refers to strategies that would involve or impact <strong>healthcare providers</strong>.',
+      patient: 'This refers to strategies that would involve or impact <strong>healthcare patients</strong>.',
+  };
+
+  function showOnionDesc(level) {
+      document.getElementById('onionDesc').innerHTML = ONION_DESCS[level] || '';
+  }
 </script>
 {% endblock %}
