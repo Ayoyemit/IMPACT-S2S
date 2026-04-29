@@ -1268,6 +1268,16 @@ endblock %} {% block head %}
       >
         Loading...
       </div>
+      <button class="download-btn" type="button" onclick="exportStrategiesCSV()">
+        ⬇ Export CSV
+      </button>
+      <button
+        type="button"
+        class="action-btn action-btn--approve"
+        onclick="openStrategyCreate()"
+      >
+        + Add Strategy
+      </button>
     </div>
     <div id="strategyListContainer">
       <div class="empty-state">Loading strategies...</div>
@@ -1276,6 +1286,78 @@ endblock %} {% block head %}
       id="strategyPagination"
       style="text-align: center; margin-top: 1rem"
     ></div>
+    <div class="review-card" style="margin-top: 1.25rem">
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+          margin-bottom: 0.65rem;
+        "
+      >
+        <h3 style="margin: 0; font-size: 1rem; font-family: var(--font-body)">
+          Strategy Activity
+        </h3>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <button
+            class="download-btn"
+            type="button"
+            onclick="toggleStrategyActivity()"
+            id="strategyActivityToggleBtn"
+          >
+            Collapse
+          </button>
+          <button class="download-btn" type="button" onclick="loadStrategyActivity()">
+            Refresh
+          </button>
+          <button
+            class="download-btn"
+            type="button"
+            onclick="exportStrategyActivityCSV()"
+          >
+            ⬇ Export CSV
+          </button>
+        </div>
+      </div>
+      <div id="strategyActivityContainer">
+        <div class="empty-state">Loading strategy activity...</div>
+      </div>
+    </div>
+    <div class="review-card" style="margin-top: 1rem">
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+          margin-bottom: 0.65rem;
+        "
+      >
+        <h3 style="margin: 0; font-size: 1rem; font-family: var(--font-body)">
+          Strategy Change Log
+        </h3>
+        <button class="download-btn" type="button" onclick="loadStrategyChangeLogs(1)">
+          Refresh
+        </button>
+        <button
+          class="download-btn"
+          type="button"
+          onclick="exportStrategyChangeLogsCSV()"
+        >
+          ⬇ Export CSV
+        </button>
+      </div>
+      <div id="strategyChangeLogContainer">
+        <div class="empty-state">Loading strategy change log...</div>
+      </div>
+      <div
+        id="strategyChangeLogPagination"
+        style="text-align: center; margin-top: 0.75rem"
+      ></div>
+    </div>
   </div>
 
   <!-- Algorithm Logs Panel -->
@@ -1616,6 +1698,114 @@ endblock %} {% block head %}
   </div>
 </div>
 
+<!-- Strategy Create Modal -->
+<div class="edit-overlay" id="strategyCreateOverlay">
+  <div class="edit-card" style="max-width: 600px">
+    <h3>Add New Strategy</h3>
+    <div class="edit-field">
+      <label>Strategy Text</label>
+      <textarea id="scChoice" rows="2"></textarea>
+    </div>
+    <div
+      class="strategy-edit-grid"
+      style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem"
+    >
+      <div class="edit-field">
+        <label>Level(s)</label>
+        <input
+          type="text"
+          id="scLevel"
+          placeholder="e.g., Organization, Provider"
+        />
+      </div>
+      <div class="edit-field">
+        <label>Actor Level</label>
+        <input type="text" id="scActorLevel" placeholder="e.g., Organization" />
+      </div>
+      <div class="edit-field">
+        <label>Recipient Level</label>
+        <input type="text" id="scRecipientLevel" placeholder="e.g., Provider" />
+      </div>
+      <div class="edit-field">
+        <label>Primary ERIC Strategy</label>
+        <input type="text" id="scEric" />
+      </div>
+      <div class="edit-field">
+        <label>Secondary ERIC Strategies</label>
+        <input type="text" id="scSecondaryEric" />
+      </div>
+      <div class="edit-field">
+        <label>Evidence-Based Practice</label>
+        <input type="text" id="scEvidence" />
+      </div>
+      <div class="edit-field">
+        <label>Source</label>
+        <input type="text" id="scSource" />
+      </div>
+      <div class="edit-field">
+        <label>Other Source</label>
+        <input type="text" id="scOtherSource" />
+      </div>
+    </div>
+    <div class="edit-field">
+      <label>Help Text</label>
+      <textarea
+        id="scHelpText"
+        rows="2"
+        placeholder="Description shown to users via info icon"
+      ></textarea>
+    </div>
+    <div class="edit-field">
+      <label
+        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer"
+      >
+        <input
+          type="checkbox"
+          id="scActive"
+          checked
+          style="width: 18px; height: 18px; accent-color: var(--color-success)"
+        />
+        Active (appears in voting pairs)
+      </label>
+    </div>
+    <div class="edit-field">
+      <label for="scSignoffInitials">Your initials (required)</label>
+      <input
+        type="text"
+        id="scSignoffInitials"
+        maxlength="32"
+        class="rank-select"
+        style="width: 100%; padding: 0.5rem 0.75rem; box-sizing: border-box"
+        autocomplete="off"
+      />
+    </div>
+    <div class="edit-field">
+      <label for="scChangeComment">What you changed (required)</label>
+      <textarea
+        id="scChangeComment"
+        rows="2"
+        placeholder="Brief note on what you added"
+      ></textarea>
+    </div>
+    <div class="edit-actions">
+      <button
+        type="button"
+        class="action-btn action-btn--duplicate"
+        onclick="closeStrategyCreate()"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="action-btn action-btn--approve"
+        onclick="saveStrategyCreate()"
+      >
+        Create Strategy
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Mark as duplicate: pick existing strategy + initials + comment -->
 <div class="edit-overlay" id="duplicateModalOverlay">
   <div class="edit-card dup-modal-card">
@@ -1841,6 +2031,8 @@ endblock %} {% block head %}
     loadCantDecides();
     loadParticipants();
     loadStrategies(1);
+    loadStrategyActivity();
+    loadStrategyChangeLogs(1);
     loadAlgoLogs(1);
     loadQuickGuideSettings();
   });
@@ -2574,9 +2766,31 @@ endblock %} {% block head %}
     showToast("Quick guide available on the voting page");
   }
 
+  function exportStrategiesCSV() {
+    const search = document.getElementById("strategySearch")
+      ? document.getElementById("strategySearch").value.trim()
+      : "";
+    window.location.href = `/api/admin/strategies/export.csv?search=${encodeURIComponent(search)}`;
+  }
+
+  function exportStrategyActivityCSV() {
+    const search = document.getElementById("strategySearch")
+      ? document.getElementById("strategySearch").value.trim()
+      : "";
+    window.location.href =
+      `/api/admin/strategy-activity/export.csv?include_inactive=true&search=${encodeURIComponent(search)}`;
+  }
+
+  function exportStrategyChangeLogsCSV() {
+    window.location.href = "/api/admin/strategy-change-logs/export.csv";
+  }
+
   // ── Strategy Library ──
   let strategyPage = 1;
   let searchTimeout = null;
+  let strategyActivityExpanded = true;
+  let strategyActivityRecords = [];
+  let strategyActivityVisibleCount = 15;
 
   function searchStrategiesDebounced() {
     clearTimeout(searchTimeout);
@@ -2671,6 +2885,160 @@ endblock %} {% block head %}
     }
   }
 
+  async function loadStrategyActivity() {
+    const container = document.getElementById("strategyActivityContainer");
+    const search = document.getElementById("strategySearch")
+      ? document.getElementById("strategySearch").value.trim()
+      : "";
+    const res = await api(
+      `/api/admin/strategy-activity?include_inactive=true&search=${encodeURIComponent(search)}`,
+    );
+    if (res.error) {
+      container.innerHTML =
+        '<div class="empty-state">Could not load strategy activity.</div>';
+      return;
+    }
+    if (!res.records || !res.records.length) {
+      strategyActivityRecords = [];
+      container.innerHTML =
+        '<div class="empty-state">No strategy activity found for this filter.</div>';
+      return;
+    }
+    strategyActivityRecords = res.records;
+    strategyActivityVisibleCount = 15;
+    renderStrategyActivity();
+  }
+
+  function renderStrategyActivity() {
+    const container = document.getElementById("strategyActivityContainer");
+    if (!strategyActivityExpanded) {
+      container.innerHTML =
+        '<div style="font-size:0.84rem; color: var(--color-muted);">Collapsed. Click "Expand" to view strategy activity.</div>';
+      return;
+    }
+    if (!strategyActivityRecords.length) {
+      container.innerHTML =
+        '<div class="empty-state">No strategy activity found for this filter.</div>';
+      return;
+    }
+    const visible = strategyActivityRecords.slice(0, strategyActivityVisibleCount);
+    const remaining = Math.max(strategyActivityRecords.length - visible.length, 0);
+    container.innerHTML = `
+      <div style="font-size:0.82rem; color: var(--color-muted); margin-bottom: 0.45rem;">
+        ${strategyActivityRecords.length} strategies · ${
+          strategyActivityRecords.filter((r) => r.never_presented).length
+        } never presented
+      </div>
+      <div class="admin-table-wrapper" style="overflow-x:auto;">
+        <table class="cd-table admin-table admin-table--cards">
+          <thead>
+            <tr>
+              <th>ID</th><th>Strategy</th><th>Active</th><th>Appearances</th><th>Wins</th><th>Losses</th><th>Total Votes</th><th>Never Presented</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${visible
+              .map(
+                (r) => `<tr>
+                <td data-label="ID">${r.id}</td>
+                <td data-label="Strategy" style="font-size:0.84rem;">${escapeHtml(r.choice || "")}</td>
+                <td data-label="Active">${r.is_active ? "✓" : "✗"}</td>
+                <td data-label="Appearances">${r.appearances}</td>
+                <td data-label="Wins">${r.wins}</td>
+                <td data-label="Losses">${r.losses}</td>
+                <td data-label="Total Votes">${r.total_votes}</td>
+                <td data-label="Never Presented">${r.never_presented ? "Yes" : "No"}</td>
+              </tr>`,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+      ${
+        remaining > 0
+          ? `<div style="margin-top:0.6rem; text-align:center;">
+              <button class="download-btn" type="button" onclick="showMoreStrategyActivity()">
+                Show more (${remaining} remaining)
+              </button>
+            </div>`
+          : ""
+      }
+    `;
+  }
+
+  function showMoreStrategyActivity() {
+    strategyActivityVisibleCount += 15;
+    renderStrategyActivity();
+  }
+
+  function toggleStrategyActivity() {
+    strategyActivityExpanded = !strategyActivityExpanded;
+    const btn = document.getElementById("strategyActivityToggleBtn");
+    if (btn) btn.textContent = strategyActivityExpanded ? "Collapse" : "Expand";
+    renderStrategyActivity();
+  }
+
+  async function loadStrategyChangeLogs(page) {
+    const container = document.getElementById("strategyChangeLogContainer");
+    const pag = document.getElementById("strategyChangeLogPagination");
+    const res = await api(
+      `/api/admin/strategy-change-logs?page=${page}&per_page=20`,
+    );
+    if (res.error) {
+      container.innerHTML =
+        '<div class="empty-state">Could not load strategy change logs.</div>';
+      pag.innerHTML = "";
+      return;
+    }
+    if (!res.records || !res.records.length) {
+      container.innerHTML =
+        '<div class="empty-state">No strategy changes recorded yet.</div>';
+      pag.innerHTML = "";
+      return;
+    }
+    container.innerHTML = `
+      <div class="admin-table-wrapper" style="overflow-x:auto;">
+        <table class="cd-table admin-table admin-table--cards">
+          <thead>
+            <tr>
+              <th>When (ET)</th><th>Strategy ID</th><th>Action</th><th>Initials</th><th>Comment</th><th>Old Wording</th><th>New Wording</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${res.records
+              .map(
+                (r) => `<tr>
+                <td data-label="When">${formatAdminDateTime(r.changed_at, { includeYear: true, includeSeconds: false })}</td>
+                <td data-label="Strategy ID">${r.strategy_id}</td>
+                <td data-label="Action">${escapeHtml(r.action_type || "")}</td>
+                <td data-label="Initials">${escapeHtml(r.changed_by_initials || "")}</td>
+                <td data-label="Comment" style="font-size:0.82rem;">${escapeHtml(r.change_comment || "")}</td>
+                <td data-label="Old Wording" style="font-size:0.82rem;">${escapeHtml(r.old_choice || "—")}</td>
+                <td data-label="New Wording" style="font-size:0.82rem;">${escapeHtml(r.new_choice || "—")}</td>
+              </tr>`,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    const totalPages = Math.ceil((res.total || 0) / (res.per_page || 20));
+    if (totalPages > 1) {
+      let html = "";
+      for (let p = 1; p <= Math.min(totalPages, 10); p++) {
+        const active =
+          p === page
+            ? "background: var(--color-accent); color: var(--color-primary-dark);"
+            : "";
+        html += `<button onclick="loadStrategyChangeLogs(${p})" style="padding: 0.3rem 0.7rem; border: 1px solid var(--color-border); border-radius: 4px; cursor: pointer; margin: 0 0.15rem; font-size: 0.82rem; ${active}">${p}</button>`;
+      }
+      pag.innerHTML = html;
+    } else {
+      pag.innerHTML = "";
+    }
+  }
+
   async function openStrategyEdit(id) {
     const res = await api(`/api/admin/strategies/${id}`);
     if (res.error) {
@@ -2714,10 +3082,37 @@ endblock %} {% block head %}
     document.getElementById("strategyEditOverlay").classList.remove("show");
   }
 
+  function openStrategyCreate() {
+    document.getElementById("scChoice").value = "";
+    document.getElementById("scLevel").value = "";
+    document.getElementById("scActorLevel").value = "";
+    document.getElementById("scRecipientLevel").value = "";
+    document.getElementById("scEric").value = "";
+    document.getElementById("scSecondaryEric").value = "";
+    document.getElementById("scEvidence").value = "";
+    document.getElementById("scSource").value = "";
+    document.getElementById("scOtherSource").value = "";
+    document.getElementById("scHelpText").value = "";
+    document.getElementById("scActive").checked = true;
+    document.getElementById("scSignoffInitials").value = "";
+    document.getElementById("scChangeComment").value = "";
+    document.getElementById("strategyCreateOverlay").classList.add("show");
+  }
+
+  function closeStrategyCreate() {
+    document.getElementById("strategyCreateOverlay").classList.remove("show");
+  }
+
   document
     .getElementById("strategyEditOverlay")
     .addEventListener("click", function (e) {
       if (e.target === this) closeStrategyEdit();
+    });
+
+  document
+    .getElementById("strategyCreateOverlay")
+    .addEventListener("click", function (e) {
+      if (e.target === this) closeStrategyCreate();
     });
 
   async function saveStrategyEdit() {
@@ -2764,7 +3159,53 @@ endblock %} {% block head %}
       showToast("Strategy updated");
       closeStrategyEdit();
       loadStrategies(strategyPage);
+      loadStrategyActivity();
+      loadStrategyChangeLogs(1);
     }
+  }
+
+  async function saveStrategyCreate() {
+    const signoff_initials = document
+      .getElementById("scSignoffInitials")
+      .value.trim();
+    const change_comment = document.getElementById("scChangeComment").value.trim();
+    if (!signoff_initials) {
+      showToast("Initials are required", "error");
+      return;
+    }
+    if (!change_comment) {
+      showToast("Please describe what you added before saving.", "error");
+      return;
+    }
+    const res = await fetch("/api/admin/strategies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        choice: document.getElementById("scChoice").value,
+        level: document.getElementById("scLevel").value,
+        actor_level: document.getElementById("scActorLevel").value,
+        recipient_level: document.getElementById("scRecipientLevel").value,
+        primary_eric: document.getElementById("scEric").value,
+        secondary_eric: document.getElementById("scSecondaryEric").value,
+        evidence_based_practice: document.getElementById("scEvidence").value,
+        source: document.getElementById("scSource").value,
+        other_source: document.getElementById("scOtherSource").value,
+        help_text: document.getElementById("scHelpText").value,
+        is_active: document.getElementById("scActive").checked,
+        signoff_initials,
+        change_comment,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      showToast(data.error || "Create failed", "error");
+      return;
+    }
+    showToast("Strategy created");
+    closeStrategyCreate();
+    loadStrategies(1);
+    loadStrategyActivity();
+    loadStrategyChangeLogs(1);
   }
 
   async function deleteStrategy() {

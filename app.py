@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, Response
 from config import Config
 from models import (db, Strategy, Session as UserSession, Comparison, CantDecide,
-                    SubmittedIdea, ExposureCount, AlgorithmLog, AppSettings)
+                    SubmittedIdea, ExposureCount, AlgorithmLog, AppSettings, StrategyChangeLog)
 from seed_data import seed_example_data
 from load_csv import load_csv_strategies
 from algorithm import AdaptivePairSelector, get_bt_score
@@ -12,6 +12,8 @@ import random
 import json
 import re
 import numpy as np
+import csv
+from io import StringIO
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -298,6 +300,18 @@ def _as_float(v):
 
 def _as_bool(v):
     return None if v is None else bool(v)
+
+
+def create_strategy_change_log(strategy_id, action_type, old_choice, new_choice, initials, comment):
+    db.session.add(StrategyChangeLog(
+        strategy_id=strategy_id,
+        action_type=action_type,
+        old_choice=old_choice,
+        new_choice=new_choice,
+        changed_by_initials=(initials or '').strip(),
+        change_comment=(comment or '').strip(),
+        changed_at=datetime.now(timezone.utc),
+    ))
 
 
 def save_algorithm_log(log_data, session_id, level):
@@ -957,6 +971,96 @@ def admin_strategies():
     })
 
 
+@app.route('/api/admin/strategies', methods=['POST'])
+def admin_create_strategy():
+    """Create a new admin-authored strategy directly in strategy library."""
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.json or {}
+    initials = (data.get('signoff_initials') or '').strip()
+    change_comment = (data.get('change_comment') or '').strip()
+    choice = (data.get('choice') or '').strip()
+    level = (data.get('level') or '').strip()
+
+    if not initials:
+        return jsonify({'error': 'Initials are required', 'success': False}), 400
+    if not change_comment:
+        return jsonify({
+            'error': 'Please describe what you changed before saving.',
+            'success': False,
+        }), 400
+    if not choice:
+        return jsonify({'error': 'Strategy text is required', 'success': False}), 400
+    if not level:
+        return jsonify({'error': 'Level(s) are required', 'success': False}), 400
+
+    s = Strategy(
+        choice=choice,
+        level=level,
+        actor_level=data.get('actor_level'),
+        recipient_level=data.get('recipient_level'),
+        primary_eric=data.get('primary_eric'),
+        secondary_eric=data.get('secondary_eric'),
+        evidence_based_practice=data.get('evidence_based_practice'),
+        source=data.get('source'),
+        other_source=data.get('other_source'),
+        help_text=data.get('help_text'),
+        is_active=bool(data.get('is_active', True)),
+        is_user_submitted=False,
+        last_signoff_initials=initials,
+        last_signoff_at=datetime.now(timezone.utc),
+        last_signoff_comment=change_comment,
+    )
+    db.session.add(s)
+    db.session.flush()
+    create_strategy_change_log(
+        strategy_id=s.id,
+        action_type='create',
+        old_choice=None,
+        new_choice=s.choice,
+        initials=initials,
+        comment=change_comment,
+    )
+    db.session.commit()
+    return jsonify({'success': True, 'id': s.id})
+
+
+@app.route('/api/admin/strategies/export.csv', methods=['GET'])
+def admin_export_strategies_csv():
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    search = request.args.get('search', '').strip()
+    query = Strategy.query.order_by(Strategy.id.asc())
+    if search:
+        query = query.filter(Strategy.choice.ilike(f'%{search}%'))
+    strategies = query.all()
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'id', 'choice', 'level', 'actor_level', 'recipient_level', 'primary_eric',
+        'secondary_eric', 'evidence_based_practice', 'source', 'other_source',
+        'help_text', 'is_active', 'is_user_submitted',
+        'last_signoff_initials', 'last_signoff_at', 'last_signoff_comment',
+    ])
+    for s in strategies:
+        writer.writerow([
+            s.id, s.choice, s.level, s.actor_level, s.recipient_level, s.primary_eric,
+            s.secondary_eric, s.evidence_based_practice, s.source, s.other_source,
+            s.help_text, s.is_active, s.is_user_submitted,
+            s.last_signoff_initials, s.last_signoff_at.isoformat() if s.last_signoff_at else '',
+            s.last_signoff_comment or '',
+        ])
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=strategy_library.csv'},
+    )
+
+
 @app.route('/api/admin/strategies/<int:strategy_id>', methods=['GET'])
 def admin_get_strategy(strategy_id):
     if not session.get('is_admin'):
@@ -993,7 +1097,9 @@ def admin_update_strategy(strategy_id):
             'success': False,
         }), 400
 
-    s.choice = data.get('choice', s.choice)
+    old_choice = s.choice
+    next_choice = data.get('choice', s.choice)
+    s.choice = next_choice
     s.level = data.get('level', s.level)
     s.actor_level = data.get('actor_level', s.actor_level)
     s.recipient_level = data.get('recipient_level', s.recipient_level)
@@ -1008,6 +1114,15 @@ def admin_update_strategy(strategy_id):
     s.last_signoff_at = datetime.now(timezone.utc)
     s.last_signoff_comment = change_comment
 
+    action_type = 'wording_edit' if (old_choice or '') != (next_choice or '') else 'metadata_edit'
+    create_strategy_change_log(
+        strategy_id=s.id,
+        action_type=action_type,
+        old_choice=old_choice,
+        new_choice=next_choice,
+        initials=initials,
+        comment=change_comment,
+    )
     db.session.commit()
     return jsonify({'success': True})
 
@@ -1087,6 +1202,164 @@ def admin_algorithm_logs():
             'votes': votes, 'cant_decides': cant_decides_algo, 'abandoned': abandoned,
         }
     })
+
+
+@app.route('/api/admin/strategy-activity', methods=['GET'])
+def admin_strategy_activity():
+    """Per-strategy operational activity report."""
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    search = request.args.get('search', '').strip().lower()
+    include_inactive = request.args.get('include_inactive', 'true').lower() == 'true'
+
+    query = Strategy.query.order_by(Strategy.id.asc())
+    if not include_inactive:
+        query = query.filter(Strategy.is_active == True)
+    strategies = query.all()
+
+    winner_counts = {}
+    loser_counts = {}
+    for w, l in db.session.query(Comparison.winner_id, Comparison.loser_id).all():
+        winner_counts[w] = winner_counts.get(w, 0) + 1
+        loser_counts[l] = loser_counts.get(l, 0) + 1
+
+    exposure_counts = {
+        sid: cnt for sid, cnt in db.session.query(ExposureCount.strategy_id, ExposureCount.count).all()
+    }
+
+    records = []
+    for s in strategies:
+        if search and search not in (s.choice or '').lower():
+            continue
+        wins = winner_counts.get(s.id, 0)
+        losses = loser_counts.get(s.id, 0)
+        exposures = int(exposure_counts.get(s.id, 0) or 0)
+        records.append({
+            'id': s.id,
+            'choice': s.choice,
+            'level': s.level,
+            'is_active': s.is_active,
+            'appearances': exposures,
+            'wins': wins,
+            'losses': losses,
+            'total_votes': wins + losses,
+            'never_presented': exposures == 0,
+        })
+
+    return jsonify({
+        'records': records,
+        'total': len(records),
+        'never_presented_count': sum(1 for r in records if r['never_presented']),
+    })
+
+
+@app.route('/api/admin/strategy-activity/export.csv', methods=['GET'])
+def admin_export_strategy_activity_csv():
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    search = request.args.get('search', '').strip().lower()
+    include_inactive = request.args.get('include_inactive', 'true').lower() == 'true'
+
+    query = Strategy.query.order_by(Strategy.id.asc())
+    if not include_inactive:
+        query = query.filter(Strategy.is_active == True)
+    strategies = query.all()
+
+    winner_counts = {}
+    loser_counts = {}
+    for w, l in db.session.query(Comparison.winner_id, Comparison.loser_id).all():
+        winner_counts[w] = winner_counts.get(w, 0) + 1
+        loser_counts[l] = loser_counts.get(l, 0) + 1
+    exposure_counts = {
+        sid: cnt for sid, cnt in db.session.query(ExposureCount.strategy_id, ExposureCount.count).all()
+    }
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'id', 'choice', 'level', 'is_active', 'appearances', 'wins', 'losses',
+        'total_votes', 'never_presented',
+    ])
+    for s in strategies:
+        if search and search not in (s.choice or '').lower():
+            continue
+        wins = winner_counts.get(s.id, 0)
+        losses = loser_counts.get(s.id, 0)
+        exposures = int(exposure_counts.get(s.id, 0) or 0)
+        writer.writerow([
+            s.id, s.choice, s.level, s.is_active, exposures, wins, losses, wins + losses,
+            'yes' if exposures == 0 else 'no',
+        ])
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=strategy_activity.csv'},
+    )
+
+
+@app.route('/api/admin/strategy-change-logs', methods=['GET'])
+def admin_strategy_change_logs():
+    """Recent strategy wording/metadata change history."""
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 30, type=int)
+    query = StrategyChangeLog.query.order_by(StrategyChangeLog.changed_at.desc())
+    total = query.count()
+    logs = query.offset((page - 1) * per_page).limit(per_page).all()
+
+    return jsonify({
+        'records': [{
+            'id': log.id,
+            'strategy_id': log.strategy_id,
+            'strategy_choice': log.strategy.choice if log.strategy else 'N/A',
+            'action_type': log.action_type,
+            'old_choice': log.old_choice,
+            'new_choice': log.new_choice,
+            'changed_by_initials': log.changed_by_initials,
+            'change_comment': log.change_comment,
+            'changed_at': log.changed_at.isoformat() if log.changed_at else None,
+        } for log in logs],
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+    })
+
+
+@app.route('/api/admin/strategy-change-logs/export.csv', methods=['GET'])
+def admin_export_strategy_change_logs_csv():
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    logs = StrategyChangeLog.query.order_by(StrategyChangeLog.changed_at.desc()).all()
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'id', 'strategy_id', 'strategy_choice', 'action_type', 'old_choice',
+        'new_choice', 'changed_by_initials', 'change_comment', 'changed_at',
+    ])
+    for log in logs:
+        writer.writerow([
+            log.id,
+            log.strategy_id,
+            log.strategy.choice if log.strategy else '',
+            log.action_type,
+            log.old_choice or '',
+            log.new_choice or '',
+            log.changed_by_initials,
+            log.change_comment,
+            log.changed_at.isoformat() if log.changed_at else '',
+        ])
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=strategy_change_logs.csv'},
+    )
 
 
 @app.route('/api/admin/algorithm-logs/export', methods=['GET'])

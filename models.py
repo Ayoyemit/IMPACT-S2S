@@ -205,3 +205,19 @@ class AppSettings(db.Model):
     quick_guide_video_url = db.Column(db.Text, nullable=True)
     quick_guide_video_title = db.Column(db.String(500), nullable=True)
 
+
+class StrategyChangeLog(db.Model):
+    """Audit trail for admin strategy edits and creations."""
+    __tablename__ = 'strategy_change_logs'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    strategy_id = db.Column(db.Integer, db.ForeignKey('strategies.id'), nullable=False)
+    action_type = db.Column(db.String(20), nullable=False)  # create, wording_edit, metadata_edit
+    old_choice = db.Column(db.Text, nullable=True)
+    new_choice = db.Column(db.Text, nullable=True)
+    changed_by_initials = db.Column(db.String(32), nullable=False)
+    change_comment = db.Column(db.Text, nullable=False)
+    changed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    strategy = db.relationship('Strategy')
+
