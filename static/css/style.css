@@ -232,6 +232,24 @@ body {
   margin-bottom: 1rem;
 }
 
+.hero-about__protocol {
+  margin-bottom: 1rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.hero-about__protocol p {
+  margin-bottom: 0.35rem;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.hero-about__protocol p:last-child {
+  margin-bottom: 0;
+}
+
 .hero-about p {
   font-size: 0.95rem;
   line-height: 1.58;
@@ -2313,6 +2331,11 @@ a.nav-btn {
     font-size: 0.86rem;
     line-height: 1.48;
     margin-bottom: 0.65rem;
+  }
+
+  .hero-about__protocol {
+    margin-bottom: 0.7rem;
+    font-size: 0.8rem;
   }
 
   .hero-about p {
