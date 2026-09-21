@@ -17,6 +17,9 @@ instance/
 .env
 .env.*
 
+# Manuscript figures/tables (generated locally; do not commit)
+manuscript_outputs/
+
 # OS / editor
 .DS_Store
 .idea/

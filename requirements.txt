@@ -6,3 +6,4 @@ numpy==2.2.1
 scipy==1.15.1
 pandas==2.2.3
 psycopg2-binary==2.9.10
+matplotlib>=3.8.0
