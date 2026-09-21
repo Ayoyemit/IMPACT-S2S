@@ -17,8 +17,12 @@ instance/
 .env
 .env.*
 
-# Manuscript figures/tables (generated locally; do not commit)
+# Manuscript tooling & outputs (local only; not part of the deployed app)
 manuscript_outputs/
+generate_manuscript_outputs.py
+regen_fig1_fig7.py
+algorithm_logs.json
+algorithm_logs_*.json
 
 # OS / editor
 .DS_Store
