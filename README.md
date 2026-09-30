@@ -152,3 +152,7 @@ Survey participants never see admin links. Staff access `/admin` directly by URL
 - **Algorithm:** SciPy (L-BFGS-B optimizer) + NumPy
 - **Fonts:** DM Serif Display + DM Sans (Google Fonts CDN)
 - **Production server:** Gunicorn (in requirements.txt)
+
+## License
+
+Released under the [MIT License](LICENSE).
