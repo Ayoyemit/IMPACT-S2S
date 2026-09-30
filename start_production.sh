@@ -19,7 +19,7 @@ export SURVEY_MODE=production
 # export STRATEGIES_CSV=data/Strategies.csv
 # export BT_SIGMA2=1.0
 # export BT_PROXY=top_heavy
-# export ADMIN_CODE=admin2026
+# Production must set ADMIN_CODE. Do not rely on the local fallback.
 # export SECRET_KEY=your-secure-random-key-here
 
 echo "✓ SURVEY_MODE=production"

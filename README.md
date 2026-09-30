@@ -16,7 +16,8 @@ bash start_production.sh
 
 # 4. Open in browser
 # http://localhost:5000
-# Admin portal: http://localhost:5000/admin (code: admin2026)
+# Admin portal: http://localhost:5000/admin
+# Local access code defaults to admin2026. Production uses the ADMIN_CODE environment variable.
 ```
 
 The database and data are created automatically on first run.
@@ -132,7 +133,7 @@ Survey participants never see admin links. Staff access `/admin` directly by URL
 | `STRATEGIES_CSV` | `data/Strategies.csv` | Path to real CSV |
 | `BT_SIGMA2` | `1.0` | BT prior variance (higher = less shrinkage) |
 | `BT_PROXY` | `top_heavy` | `exposure` or `top_heavy` |
-| `ADMIN_CODE` | `admin2026` | Admin portal access code |
+| `ADMIN_CODE` | local fallback only | Admin portal access code. Production must set this environment variable. |
 | `SECRET_KEY` | (auto) | Flask session secret |
 | `DATABASE_URL` | `sqlite:///wiki_survey.db` | Database URI |
 
