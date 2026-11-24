@@ -1,41 +1,12 @@
 {
-  "title": "Participate2Prioritize (P2P): An Open-Source Adaptive Wiki Survey Platform",
-  "version": "1.0.0",
-  "upload_type": "software",
-  "access_right": "open",
-  "license": "mit",
-  "language": "eng",
+  "title": "Participate 2 Prioritize (P2P): An Open-Source Adaptive Wiki Survey Platform",
+  "description": "Web-based adaptive wiki survey platform for community-engaged prioritization of implementation strategies. Bradley-Terry MAP estimation with proxy-uncertainty adaptive pair selection. Python/Flask, SQLAlchemy, SciPy/NumPy, PostgreSQL. Developed at Johns Hopkins University.",
   "creators": [
-    {
-      "name": "Oladimeji, Ayoyemi Toheeb",
-      "affiliation": "Johns Hopkins Bloomberg School of Public Health, Baltimore, MD, USA"
-    },
-    {
-      "name": "Yuan, Christina T.",
-      "affiliation": "Johns Hopkins Bloomberg School of Public Health, Baltimore, MD, USA",
-      "orcid": "0000-0002-9307-9568"
-    },
-    {
-      "name": "Igusa, Takeru",
-      "affiliation": "Johns Hopkins Bloomberg School of Public Health, Baltimore, MD, USA",
-      "orcid": "0000-0002-3632-2867"
-    }
+    {"name": "Oladimeji, Ayoyemi Toheeb", "affiliation": "Johns Hopkins University"},
+    {"name": "Yuan, Christina T.", "affiliation": "Johns Hopkins University"},
+    {"name": "Igusa, Takeru", "affiliation": "Johns Hopkins University"}
   ],
-  "description": "<p>Wiki surveys enable large-scale pairwise comparison of ideas, but most implementations select pairs randomly and do not support socioecological, multi-level libraries of implementation strategies. Participate2Prioritize (P2P) is an open-source adaptive wiki survey platform for community-engaged prioritization of implementation strategies.</p><p>The system combines an interactive participant interface with Bradley&ndash;Terry maximum a posteriori (MAP) estimation using L-BFGS-B optimization, proxy-uncertainty focal selection with top-heavy sigmoid weighting, near-tie opponent selection with an exposure-diversified sparse-data correction, and a cold-start random-pair fallback. Pair selection is computed in real time (sub-second per comparison). The platform is implemented in Python 3.12 with Flask, SQLAlchemy, SciPy, NumPy, and PostgreSQL, is configurable through environment variables, and is released under the MIT License.</p><p>In the IMPACT S2S case study, 39 participants contributed 818 votes across four socioecological levels (Provider, Organization, System, and Patient) among 93 active strategies (58 Provider, 82 Organization, 21 System, 21 Patient, and 77 multi-level). All 915 MAP refits converged (100%; mean 10.3 iterations). Data were collected from 21 April to 30 June 2026.</p><p>This software release accompanies the manuscript &ldquo;An Open-Source Adaptive Wiki Survey Platform for Community-Engaged Prioritization of Implementation Strategies,&rdquo; submitted to <em>Frontiers in Health Services</em>.</p>",
-  "keywords": [
-    "wiki survey",
-    "Bradley-Terry",
-    "pairwise comparison",
-    "implementation science",
-    "community-engaged research",
-    "adaptive algorithm"
-  ],
-  "related_identifiers": [
-    {
-      "identifier": "https://github.com/Ayoyemit/IMPACT-S2S",
-      "relation": "isIdenticalTo",
-      "resource_type": "software"
-    }
-  ],
-  "notes": "Related manuscript submitted to Frontiers in Health Services (2026): Oladimeji AT, Yuan C, Igusa T. An Open-Source Adaptive Wiki Survey Platform for Community-Engaged Prioritization of Implementation Strategies. After the article DOI is assigned, add a related_identifiers object with identifier 10.3389/frhs.XXXX.XXXXXXX (replace XXXX), relation isSupplementTo, and resource_type publication-article. No Zenodo community with slug implementation-science currently exists; add a communities entry only after confirming the identifier at https://zenodo.org/communities."
+  "license": "MIT",
+  "upload_type": "software",
+  "keywords": ["wiki survey", "Bradley-Terry", "pairwise comparison", "implementation science", "community-engaged research", "adaptive algorithm", "preference elicitation"]
 }
