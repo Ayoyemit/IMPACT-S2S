@@ -1,5 +1,7 @@
 # Participate2Prioritize (P2P) — Wiki Survey System
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24499991.svg)](https://doi.org/10.5281/zenodo.24499991)
+
 A research-driven pairwise comparison survey for identifying the best implementation strategies for smoking cessation treatment in community mental health settings.
 
 ## Quick Start

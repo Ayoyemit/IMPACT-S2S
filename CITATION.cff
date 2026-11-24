@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Participate 2 Prioritize (P2P): An Open-Source Adaptive Wiki Survey Platform"
+authors:
+  - family-names: "Oladimeji"
+    given-names: "Ayoyemi Toheeb"
+    affiliation: "Johns Hopkins University"
+  - family-names: "Yuan"
+    given-names: "Christina T."
+    affiliation: "Johns Hopkins University"
+  - family-names: "Igusa"
+    given-names: "Takeru"
+    affiliation: "Johns Hopkins University"
+version: "1.0.0"
+doi: "10.5281/zenodo.24499991"
+date-released: "2026-11-24"
+repository-code: "https://github.com/Ayoyemit/IMPACT-S2S"
+license: MIT
+keywords:
+  - wiki survey
+  - Bradley-Terry
+  - pairwise comparison
+  - implementation science
+  - community-engaged research
