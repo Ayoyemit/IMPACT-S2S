@@ -1,10 +1,10 @@
 #!/bin/bash
-# start_production.sh — Launch IMPACT S2S in production mode
+# start_production.sh — Launch Participate2Prioritize (P2P) in production mode
 #
 # This script removes any existing database and starts fresh
 # with real strategy data and the Bradley-Terry adaptive algorithm.
 
-echo "=== IMPACT S2S — Production Mode ==="
+echo "=== Participate2Prioritize (P2P) — Production Mode ==="
 echo ""
 
 # Remove existing database for a clean start

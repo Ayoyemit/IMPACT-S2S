@@ -1,4 +1,4 @@
-# IMPACT S2S — Wiki Survey System
+# Participate2Prioritize (P2P) — Wiki Survey System
 
 A research-driven pairwise comparison survey for identifying the best implementation strategies for smoking cessation treatment in community mental health settings.
 

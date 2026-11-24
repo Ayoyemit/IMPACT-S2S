@@ -50,7 +50,7 @@ def migrate_app_settings_schema():
         if 'app_settings' not in inspector.get_table_names():
             return
     except Exception as exc:
-        print(f'[IMPACT S2S] app_settings schema inspect skipped: {exc}')
+        print(f'[P2P] app_settings schema inspect skipped: {exc}')
         return
 
     col_names = {c['name'] for c in inspector.get_columns('app_settings')}
@@ -66,9 +66,9 @@ def migrate_app_settings_schema():
     try:
         with db.engine.begin() as conn:
             conn.execute(stmt)
-        print('[IMPACT S2S] app_settings: dropped deprecated column quick_guide_video_filename')
+        print('[P2P] app_settings: dropped deprecated column quick_guide_video_filename')
     except Exception as exc:
-        print(f'[IMPACT S2S] app_settings schema cleanup skipped (e.g. SQLite < 3.35): {exc}')
+        print(f'[P2P] app_settings schema cleanup skipped (e.g. SQLite < 3.35): {exc}')
 
 
 def ensure_db_column(table, col_name, col_sql):
@@ -85,9 +85,9 @@ def ensure_db_column(table, col_name, col_sql):
     try:
         with db.engine.begin() as conn:
             conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {col_name} {col_sql}'))
-        print(f'[IMPACT S2S] Added column {table}.{col_name}')
+        print(f'[P2P] Added column {table}.{col_name}')
     except Exception as exc:
-        print(f'[IMPACT S2S] Could not add {table}.{col_name}: {exc}')
+        print(f'[P2P] Could not add {table}.{col_name}: {exc}')
 
 
 def migrate_admin_signoff_columns():
@@ -120,11 +120,11 @@ with app.app_context():
     if SURVEY_MODE == 'production':
         csv_path = app.config.get('STRATEGIES_CSV', 'data/Strategies.csv')
         load_csv_strategies(csv_path)
-        print(f"[IMPACT S2S] Running in PRODUCTION mode (BT adaptive algorithm)")
+        print(f"[P2P] Running in PRODUCTION mode (BT adaptive algorithm)")
     else:
         seed_example_data()
-        print(f"[IMPACT S2S] Running in EXAMPLE mode (random pair selection)")
-    print(f'[IMPACT S2S] Database backend: {db.engine.dialect.name}')
+        print(f"[P2P] Running in EXAMPLE mode (random pair selection)")
+    print(f'[P2P] Database backend: {db.engine.dialect.name}')
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -480,7 +480,7 @@ def get_pair():
         })
     except Exception as exc:
         db.session.rollback()
-        print(f'[IMPACT S2S] get_pair error: {exc}')
+        print(f'[P2P] get_pair error: {exc}')
         return jsonify({'error': 'Could not load a pair. Please refresh or try again.'}), 500
 
 
